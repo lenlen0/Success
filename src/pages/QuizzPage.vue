@@ -6,17 +6,20 @@
       <q-btn round color="purple-7" icon="smart_toy" />
       <br/><br/>
       <q-table
-        color="purple-12"
-        title="QUIZZ"
+        color="primary"
+        card-class="bg-white"
+        table-header-class="bg-purple-1 text-purple-10"
+        flat bordered title=""
         :rows="rows"
         :columns="columns"
         row-key="NOM"
+
       >
         <template v-slot:body-cell-Action="props">
           <q-td :props="props" class="flex items-center justify-center">
             <div class="row items-center q-gutter-sm">
-              <q-btn round color="purple-7" dense icon="delete" aria-label="Supprimer"/>
-              <q-btn round color="purple-7" dense icon="edit" aria-label="Éditer"/>
+              <q-btn flat color="purple-7" dense icon="delete" aria-label="Supprimer"/>
+              <q-btn flat color="purple-7" dense icon="edit" aria-label="Éditer"/>
             </div>
           </q-td>
         </template>
