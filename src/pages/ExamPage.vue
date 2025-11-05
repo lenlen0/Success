@@ -1,15 +1,9 @@
 <template>
-  <!-- Page principale avec padding et fond rose -->
   <q-page class="bg-rose column items-center q-pa-lg" style="background-color: #FFF4FF;">
-    <!-- Container pour l'en-tête et le tableau -->
     <div class="q-pa-md full-width">
-      <!-- Ligne flex pour titre et bouton -->
-      <div class="row items-center justify-between q-mb-md">
-        <!-- Titre "Éval" -->
-        <h4 class="text-purple-12 text-weight-bold">Éval</h4>
-        <!-- Bouton rond pour ouvrir le dialog -->
-        <q-btn round color="purple-7" icon="add" @click="showDialog = true" />
-      </div>
+      <h4 class="text-purple-12 text-weight-bold">Éval</h4>
+      <q-btn round color="purple-7" icon="add" style="margin: 8px" @click="showDialog = true" />
+      <br/><br/>
 
       <!-- Tableau Quasar -->
       <q-table
@@ -27,7 +21,7 @@
           <!-- Bouton éditer la ligne -->
           <q-btn flat color="purple-7" icon="edit" aligne="center" @click="editRow(props.row)" />
           <!-- Bouton supprimer la ligne -->
-          <q-btn round color="purple-7" icon="delete_outline" aligne="center" @click="editRow(props.row)" />
+          <q-btn flat color="purple-7" icon="delete_outline" aligne="center" @click="editRow(props.row)" />
         </template>
       </q-table>
     </div>
@@ -43,13 +37,13 @@
 
         <!-- Section pour les inputs du formulaire -->
         <q-card-section>
+          <div class="row q-gutter-md">
           <!-- Input pour le nom -->
           <q-input
               rounded
               outlined
               :label="'Nom'"
-              class="col"
-              style="width:100%;"
+              class="col-11"
             />
             
           <!-- Input pour la date -->
@@ -57,16 +51,14 @@
               rounded
               outlined
               :label="'Date'"
-              class="col"
-              style="width:100%;"
+              class="col-11"
             />
           <!-- Input pour le QCM -->
           <q-input
               rounded
               outlined
               :label="'QCM'"
-              class="col"
-              style="width:100%;"
+              class="col-11"
             />
           <!-- Select pour choisir le groupe -->
           <q-select
@@ -75,7 +67,9 @@
             v-model="newEval.groupe"
             :options="['A', 'B', 'C']"
             label="Groupe"
+            class="col-11"
           />
+        </div>
         </q-card-section>
 
         <!-- Actions du dialog (boutons) -->
