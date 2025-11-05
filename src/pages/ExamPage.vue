@@ -51,12 +51,12 @@
               class="col"
               style="width:100%;"
             />
+            
           <!-- Input pour la date -->
           <q-input
               rounded
               outlined
-              
-              :label="'Réponse ' + (idx + 1)"
+              :label="'Date'"
               class="col"
               style="width:100%;"
             />
@@ -64,8 +64,7 @@
           <q-input
               rounded
               outlined
-              
-              :label="'Réponse ' + (idx + 1)"
+              :label="'QCM'"
               class="col"
               style="width:100%;"
             />
@@ -77,14 +76,6 @@
             :options="['A', 'B', 'C']"
             label="Groupe"
           />
-          <q-input
-              rounded
-              outlined
-              
-              :label="'Réponse ' + (idx + 1)"
-              class="col"
-              style="width:100%;"
-            />
         </q-card-section>
 
         <!-- Actions du dialog (boutons) -->
