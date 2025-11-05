@@ -2,7 +2,7 @@
   <q-page class="flex flex-center">
     <div class="q-pa-md" style="width: 100%; max-width: 1000px;">
 
-      <h1 class="text-h4 text-md-h3 q-mb-md">Questionnaires</h1>
+      <h1 class="text-h4  text-purple-12">Questionnaires</h1>
 
       <q-btn round color="purple-7" icon="add" style="margin: 8px" @click="openAddDialog" />
       <q-btn round color="purple-7" icon="smart_toy" />
@@ -22,7 +22,7 @@
             <q-td :props="props" class="flex items-center justify-center">
               <div class="row items-center q-gutter-sm no-wrap">
                 <q-btn flat color="purple-7" dense icon="delete" aria-label="Supprimer" @click="deleteQuizz(props.row)"/>
-                <q-btn flat color="purple-7" dense icon="edit" aria-label="Éditer"/>
+                <q-btn flat color="purple-7" dense icon="edit" aria-label="Éditer" @click="openEditDialog(props.row)"/>
               </div>
             </q-td>
           </template>
@@ -33,7 +33,7 @@
     <q-dialog v-model="showDialog" persistent>
       <q-card style="min-width: 400px;">
         <q-card-section class="bg-purple-1 text-purple-10">
-          <div class="text-h6">Nouveau Questionnaire</div>
+          <div class="text-h6">{{ editedQuizz ? 'Éditer le Questionnaire' : 'Nouveau Questionnaire' }}</div>
         </q-card-section>
         <q-card-section>
           <q-input
@@ -57,7 +57,7 @@
         </q-card-section>
         <q-card-actions align="right">
           <q-btn unelevated rounded color="purple-7" label="Annuler" v-close-popup />
-          <q-btn unelevated rounded color="purple-7" label="Ajouter" @click="addQuizz" />
+          <q-btn unelevated rounded color="purple-7" :label="editedQuizz ? 'Modifier' : 'Ajouter'" @click="handleSubmit" />
         </q-card-actions>
       </q-card>
     </q-dialog>
@@ -93,19 +93,40 @@ export default {
     const newQuizzName = ref('')
     const newQuizzTime = ref(null)
 
+    const editedQuizz = ref(null)
+
     function openAddDialog() {
+      editedQuizz.value = null
       newQuizzName.value = ''
       newQuizzTime.value = null
       showDialog.value = true
     }
 
-    function addQuizz() {
+
+    function openEditDialog(row) {
+
+      editedQuizz.value = row
+
+      newQuizzName.value = row.NOM
+      newQuizzTime.value = row.temps
+      showDialog.value = true
+    }
+
+
+    function handleSubmit() {
       if (newQuizzName.value && newQuizzTime.value > 0) {
-        rows.value.push({
-          NOM: newQuizzName.value,
-          Nombre_De_Questions: 0,
-          temps: newQuizzTime.value
-        })
+        if (editedQuizz.value) {
+
+          editedQuizz.value.NOM = newQuizzName.value
+          editedQuizz.value.temps = newQuizzTime.value
+        } else {
+
+          rows.value.push({
+            NOM: newQuizzName.value,
+            Nombre_De_Questions: 0,
+            temps: newQuizzTime.value
+          })
+        }
         showDialog.value = false
       } else {
         console.error("Veuillez remplir tous les champs correctement.")
@@ -113,7 +134,7 @@ export default {
     }
 
     function deleteQuizz(rowToDelete) {
-      const index = rows.value.findIndex(row => row.NOM === rowToDelete.NOM)
+      const index = rows.value.indexOf(rowToDelete)
       if (index > -1) {
         rows.value.splice(index, 1)
       }
@@ -125,9 +146,11 @@ export default {
       showDialog,
       newQuizzName,
       newQuizzTime,
+      editedQuizz,
       openAddDialog,
-      addQuizz,
-      deleteQuizz
+      handleSubmit,
+      deleteQuizz,
+      openEditDialog
     }
   }
 }
