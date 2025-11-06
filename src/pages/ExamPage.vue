@@ -103,8 +103,14 @@
     { name: 'groupe', label: 'Groupe', align: 'left', field: 'groupe' },
     { name: 'reussite', label: '% Réussite', align: 'left', field: 'reussite' },
     // Colonne pour les actions (éditer/supprimer)
-    { name: 'action', label: 'Action', align: 'left' }
-  ]
+    {
+    name: 'action',
+    label: 'Action',
+    align: 'center',
+    style: 'width: 120px; max-width: 120px;',
+    headerStyle: 'width: 120px; max-width: 120px;'
+    }
+]
 
   // Données initiales du tableau
   const rows = ref([
