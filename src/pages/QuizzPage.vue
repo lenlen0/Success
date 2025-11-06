@@ -65,35 +65,39 @@
 </template>
 
 <script>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
+import axios from 'axios'
+
 
 const columns = [
-  { name: 'NOM', align: 'center', label: 'NOM', field: 'NOM', sortable: true },
-  { name: 'Nombre_De_Questions', label: 'Nombre De Questions', field: 'Nombre_De_Questions', align: 'center'},
+  { name: 'NOM', align: 'center', label: 'NOM', field: 'nom', sortable: true }, // <-- MODIFIÉ
+  { name: 'Nombre_De_Questions', label: 'Nombre De Questions', field: 'nombre_de_question', align: 'center'}, // <-- MODIFIÉ
   { name: 'temps', label: 'Temps (min)', field: 'temps' , align: 'center' },
   { name: 'Action', label: 'Action', field: 'Action' , align: 'center' }
 ]
 
-const initialRows = [
-  { NOM: 'QCM 1', Nombre_De_Questions: 16, temps: 23 },
-  { NOM: 'QCM 2', Nombre_De_Questions: 15, temps: 15 },
-  { NOM: 'QCM 3', Nombre_De_Questions: 20, temps: 30 },
-  { NOM: 'QCM 4', Nombre_De_Questions: 16, temps: 17 },
-  { NOM: 'QCM 5', Nombre_De_Questions: 54, temps: 60 },
-  { NOM: 'QCM 6', Nombre_De_Questions: 15, temps: 20 },
-  { NOM: 'QCM 7', Nombre_De_Questions: 30, temps: 45 },
-  { NOM: 'QCM 8', Nombre_De_Questions: 26, temps: 45 }
-]
-
 export default {
   setup () {
-    const rows = ref([...initialRows])
+    const rows = ref([])
     const showDialog = ref(false)
 
     const newQuizzName = ref('')
     const newQuizzTime = ref(null)
 
     const editedQuizz = ref(null)
+
+    async function fetchQuizzes() {
+      try {
+        const response = await axios.get('https://10.0.52.115/success/api.php/quizz')
+        rows.value = response.data
+      } catch (error) {
+        console.error("Erreur lors de la récupération des questionnaires:", error)
+      }
+    }
+
+    onMounted(() => {
+      fetchQuizzes()
+    })
 
     function openAddDialog() {
       editedQuizz.value = null
@@ -102,28 +106,24 @@ export default {
       showDialog.value = true
     }
 
-
     function openEditDialog(row) {
-
       editedQuizz.value = row
-
-      newQuizzName.value = row.NOM
+      newQuizzName.value = row.nom
       newQuizzTime.value = row.temps
       showDialog.value = true
     }
 
-
     function handleSubmit() {
       if (newQuizzName.value && newQuizzTime.value > 0) {
         if (editedQuizz.value) {
-
-          editedQuizz.value.NOM = newQuizzName.value
+          editedQuizz.value.nom = newQuizzName.value
           editedQuizz.value.temps = newQuizzTime.value
         } else {
-
+          // Logique d'ajout
           rows.value.push({
-            NOM: newQuizzName.value,
-            Nombre_De_Questions: 0,
+            id: Date.now(),
+            nom: newQuizzName.value,
+            nombre_de_question: 0,
             temps: newQuizzTime.value
           })
         }
