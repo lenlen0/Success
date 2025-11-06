@@ -1,60 +1,72 @@
-CREATE TABLE IF NOT EXISTS Exam (
-    idExam INT PRIMARY KEY,
-    name VARCHAR(50),
-    status VARCHAR(50),
-    code VARCHAR(50),
-    scale VARCHAR(50),
-    hasMalus BOOL,
-    time VARCHAR(50),
-    idQuizz INT REFERENCES Quizz(idQuizz),
-    idGroup INT REFERENCES Group(idGroup)
-);
+CREATE DATABASE IF NOT EXISTS Success;
+USE Success;
 
 CREATE TABLE IF NOT EXISTS User (
-    id_s11 INT PRIMARY KEY,
-    pwd VARCHAR(50),
-    role VARCHAR(50),
-    lastname VARCHAR(50),
-    firstname VARCHAR(50)
+    id_s11 INT PRIMARY KEY AUTO_INCREMENT,
+    pwd VARCHAR(255) NOT NULL,
+    role ENUM('admin', 'teacher', 'student') NOT NULL,
+    lastname VARCHAR(50) NOT NULL,
+    firstname VARCHAR(50) NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS Group (
-    idGroup INT PRIMARY KEY,
-    name VARCHAR(50)
+CREATE TABLE IF NOT EXISTS `Group` (
+    idGroup INT PRIMARY KEY AUTO_INCREMENT,
+    name VARCHAR(50) NOT NULL UNIQUE
 );
 
 CREATE TABLE IF NOT EXISTS Quizz (
-    idQuizz INT PRIMARY KEY,
-    name VARCHAR(50),
-    isEnable BOOL,
-    id_s11 INT REFERENCES User(id_s11)
+    idQuizz INT PRIMARY KEY AUTO_INCREMENT,
+    name VARCHAR(50) NOT NULL,
+    isEnable BOOLEAN NOT NULL,
+    id_s11 INT NOT NULL,
+    FOREIGN KEY (id_s11) REFERENCES User(id_s11) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS Exam (
+    idExam INT PRIMARY KEY AUTO_INCREMENT,
+    name VARCHAR(50) NOT NULL,
+    status VARCHAR(50),
+    code VARCHAR(50) UNIQUE NOT NULL,
+    scale VARCHAR(50),
+    hasMalus BOOLEAN NOT NULL,
+    time VARCHAR(50),
+    idQuizz INT NOT NULL,
+    idGroup INT NOT NULL,
+    FOREIGN KEY (idQuizz) REFERENCES Quizz(idQuizz) ON DELETE CASCADE,
+    FOREIGN KEY (idGroup) REFERENCES `Group`(idGroup) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS Question (
-    idQuestion INT PRIMARY KEY,
-    name TEXT,
-    isEnable BOOL,
-    idQuizz INT REFERENCES Quizz(idQuizz)
+    idQuestion INT PRIMARY KEY AUTO_INCREMENT,
+    name TEXT NOT NULL,
+    isEnable BOOLEAN NOT NULL,
+    idQuizz INT NOT NULL,
+    FOREIGN KEY (idQuizz) REFERENCES Quizz(idQuizz) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS Answer (
-    idAnswer INT PRIMARY KEY,
-    name TEXT,
-    isCorrect BOOL,
-    idQuestion INT REFERENCES Question(idQuestion)
+    idAnswer INT PRIMARY KEY AUTO_INCREMENT,
+    name TEXT NOT NULL,
+    isCorrect BOOLEAN NOT NULL,
+    idQuestion INT NOT NULL,
+    FOREIGN KEY (idQuestion) REFERENCES Question(idQuestion) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS BelongGroup (
-    id_s11 INT REFERENCES User(id_s11),
-    idGroup INT REFERENCES Group(idGroup),
-    PRIMARY KEY(id_s11,idGroup)
+    id_s11 INT NOT NULL,
+    idGroup INT NOT NULL,
+    PRIMARY KEY (id_s11, idGroup),
+    FOREIGN KEY (id_s11) REFERENCES User(id_s11) ON DELETE CASCADE,
+    FOREIGN KEY (idGroup) REFERENCES `Group`(idGroup) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS TakeExam (
-    id_s11 INT REFERENCES User(id_s11),
-    idExam INT REFERENCES Exam(idExam),
-    date_exam DATETIME,
+    id_s11 INT NOT NULL,
+    idExam INT NOT NULL,
+    date_exam DATETIME NOT NULL,
     answer TEXT,
     grade FLOAT,
-    PRIMARY KEY(id_s11,idExam)
+    PRIMARY KEY (id_s11, idExam),
+    FOREIGN KEY (id_s11) REFERENCES User(id_s11),
+    FOREIGN KEY (idExam) REFERENCES Exam(idExam)
 );
