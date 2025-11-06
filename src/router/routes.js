@@ -1,7 +1,7 @@
 const routes = [
   {
     path: '/',
-    component: () => import('layouts/MainLayout.vue'),
+    component: () => import('layouts/NavbarLayout.vue'),
     children: [
       { path: '', component: () => import('pages/IndexPage.vue') }
     ]
@@ -9,7 +9,7 @@ const routes = [
 
   {
     path: '/exam',
-    component: () => import('layouts/MainLayout.vue'),
+    component: () => import('layouts/NavbarLayout.vue'),
     children: [
       { path: '', component: () => import('pages/ExamPage.vue') }
     ]
@@ -17,7 +17,7 @@ const routes = [
 
   {
     path: '/quizz',
-    component: () => import('layouts/MainLayout.vue'),
+    component: () => import('layouts/NavbarLayout.vue'),
     children: [
       { path: '', component: () => import('pages/QuizzPage.vue') }
     ]
@@ -25,7 +25,7 @@ const routes = [
 
   {
     path: '/question',
-    component: () => import('layouts/MainLayout.vue'),
+    component: () => import('layouts/NavbarLayout.vue'),
     children: [
       { path: '', component: () => import('pages/QuestionPage.vue') }
     ]
@@ -33,7 +33,7 @@ const routes = [
 
   {
     path: '/group',
-    component: () => import('layouts/MainLayout.vue'),
+    component: () => import('layouts/NavbarLayout.vue'),
     children: [
       { path: '', component: () => import('pages/GroupPage.vue') }
     ]
