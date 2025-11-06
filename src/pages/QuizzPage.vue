@@ -105,6 +105,7 @@ async function fetchQuizzes() {
         })
       }
     }
+    z
 
     onMounted(() => {
       fetchQuizzes()
