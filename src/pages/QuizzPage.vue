@@ -67,6 +67,7 @@
 <script>
 import { ref, onMounted } from 'vue'
 import axios from 'axios'
+import { useQuasar } from 'quasar'
 
 
 const columns = [
@@ -76,22 +77,33 @@ const columns = [
   { name: 'Action', label: 'Action', field: 'Action' , align: 'center' }
 ]
 
+
+
 export default {
   setup () {
     const rows = ref([])
     const showDialog = ref(false)
+    const $q = useQuasar()
 
     const newQuizzName = ref('')
     const newQuizzTime = ref(null)
 
     const editedQuizz = ref(null)
 
-    async function fetchQuizzes() {
+async function fetchQuizzes() {
       try {
-        const response = await axios.get('https://10.0.52.115/success/api.php/quizz')
+        // Forcez une erreur en appelant une URL qui n'existe pas
+        const response = await axios.get('https://cette-url-n-existe-vraiment-pas.xyz')
         rows.value = response.data
       } catch (error) {
-        console.error("Erreur lors de la récupération des questionnaires:", error)
+        console.error("Erreur attrapée volontairement:", error) // <-- Regardez la console
+
+        $q.notify({
+          color: 'negative',
+          position: 'top',
+          message: "Échec de la connexion au serveur. Impossible de charger les questionnaires.",
+          icon: 'report_problem'
+        })
       }
     }
 
