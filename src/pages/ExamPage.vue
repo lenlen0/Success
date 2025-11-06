@@ -50,6 +50,14 @@
               label="Groupe"
               class="col-11"
             />
+            <q-select
+              rounded
+              standout="bg-grey-1"
+              v-model="newEval.status"
+              :options="['En cours', 'Terminé', 'Entrainement']"
+              label="Status"
+              class="col-11"
+            />
           </div>
         </q-card-section>
 
@@ -73,6 +81,7 @@ const columns = [
   { name: 'date', label: 'Date', align: 'left', field: 'date' },
   { name: 'qcm', label: 'QCM', align: 'left', field: 'qcm' },
   { name: 'groupe', label: 'Groupe', align: 'left', field: 'groupe' },
+  { name: 'status', label: 'Status', align: 'left', field: 'status' },
   { name: 'reussite', label: '% Réussite', align: 'left', field: 'reussite' },
   {
     name: 'action',
@@ -123,6 +132,7 @@ onMounted(async () => {
       date: item.Date,            // Champ Date (majuscule selon API)
       qcm: item.QCM,              // Champ QCM
       groupe: item.Groupe,        // Champ Groupe
+      status: item.Status,      // Champ Status
       reussite: item['%Reussite'] // Champ % Réussite
     }))
 
