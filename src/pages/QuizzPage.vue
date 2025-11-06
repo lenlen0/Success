@@ -92,17 +92,16 @@ export default {
 
 async function fetchQuizzes() {
       try {
-        // Forcez une erreur en appelant une URL qui n'existe pas
-        const response = await axios.get('https://cette-url-n-existe-vraiment-pas.xyz')
+        const response = await axios.get('https://10.0.52.115/success/api.php/quizz')
         rows.value = response.data
       } catch (error) {
-        console.error("Erreur attrapée volontairement:", error) // <-- Regardez la console
+        console.error('Erreur lors de la récupération des questionnaires :', error)
 
         $q.notify({
-          color: 'negative',
+          color: 'purple-11',
           position: 'top',
           message: "Échec de la connexion au serveur. Impossible de charger les questionnaires.",
-          icon: 'report_problem'
+          icon: 'error'
         })
       }
     }
