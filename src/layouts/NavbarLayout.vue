@@ -20,13 +20,13 @@
       <q-drawer
         v-model="leftDrawerOpen"
         show-if-above
-        bordered
+        style="background-color: #FFF4FF;"
       >
         <q-list>
-          <q-item-label
+          <q-item-label class="text-bold text-purple-10"
             header
           >
-            Essential Links
+            Success
           </q-item-label>
   
           <EssentialLink
