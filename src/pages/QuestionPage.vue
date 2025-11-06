@@ -1,5 +1,5 @@
 <template>
-  <div class="q-pa-md q-gutter-sm">
+  <div class="q-pa-md q-gutter-sm" style="background-color: #FFF4FF; min-height: 100vh;">
     <!-- Bouton pour ouvrir la popup -->
     <q-btn round color="purple-7" icon="add" @click="popup = true" />
 
