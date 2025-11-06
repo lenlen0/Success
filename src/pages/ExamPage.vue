@@ -1,7 +1,11 @@
 <template>
   <q-page class="bg-rose column items-center q-pa-lg" style="background-color: #FFF4FF;">
     <div class="q-pa-md full-width">
-      <h4 class="text-purple-12 text-weight-bold">Éval</h4>
+      <!-- Titre -->
+      <h4
+      class="text-purple-12 text-weight-bold"
+      style="margin-bottom: 8px;"
+      >Éval</h4>
       <q-btn round color="purple-7" icon="add" style="margin: 8px" @click="showDialog = true" />
       <br/><br/>
 
