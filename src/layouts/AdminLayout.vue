@@ -10,13 +10,13 @@
             aria-label="Menu"
             @click="toggleLeftDrawer"
           />
-  
+
           <q-toolbar-title>
             Success
           </q-toolbar-title>
         </q-toolbar>
       </q-header>
-  
+
       <q-drawer
         v-model="leftDrawerOpen"
         show-if-above
@@ -28,7 +28,7 @@
           >
             Success
           </q-item-label>
-  
+
           <EssentialLink
             v-for="link in linksList"
             :key="link.title"
@@ -36,7 +36,7 @@
           />
         </q-list>
       </q-drawer>
-  
+
       <q-page-container>
         <router-view />
       </q-page-container>
@@ -81,7 +81,7 @@ const linksList = [
     title: 'Déconnexion',
     caption: 'Quitter vers le portail de connexion',
     icon: 'logout',
-    link: 'https://facebook.quasar.dev'
+    link: 'https://www.urssaf.fr/accueil.html'
   }
 ]
 
