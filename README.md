@@ -1,4 +1,4 @@
-# 🎯 Projet SUCCESS
+# Projet SUCCESS
 
 **Solution web d'évaluation des collaborateurs par questionnaires pour la société S11.**
 
@@ -6,18 +6,18 @@ Ce dépôt contient le code source de l'application **SUCCESS**, un outil intern
 
 ---
 
-## ✨ Fonctionnalités Principales
+## Fonctionnalités Principales
 
 L'application est conçue autour de deux rôles distincts avec des permissions spécifiques.
 
-### 👨‍💼 Espace Administrateur
+### Espace Administrateur
 * **Gestion des Utilisateurs :** Créer, modifier et gérer les comptes collaborateurs.
 * **Gestion des Groupes :** Créer des groupes de collaborateurs (par ex: "Équipe Marketing").
 * **Banque de Questions :** Créer et cataloguer les questions (QCM choix unique / multiple).
 * **Gestion des Questionnaires :** Assembler des questions pour créer un test et l'assigner à des utilisateurs ou des groupes.
 * **Suivi :** Accéder aux statistiques et résultats.
 
-### 👥 Espace Collaborateur
+### Espace Collaborateur
 * **Authentification :** Se connecter à son espace personnel.
 * **Accès aux Tests :** Rejoindre un questionnaire assigné à l'aide d'un mot de passe.
 * **Passation :** Répondre aux questions dans l'interface de test.
@@ -25,7 +25,7 @@ L'application est conçue autour de deux rôles distincts avec des permissions s
 
 ---
 
-## 💻 Stack Technique & Architecture
+## Stack Technique & Architecture
 
 * **Frontend :** [**QuasarJS**](https://quasar.dev/) (un framework basé sur Vue.js).
 * **Backend :** **PHP Natif** (pour l'API et la logique serveur).
@@ -33,7 +33,7 @@ L'application est conçue autour de deux rôles distincts avec des permissions s
 
 ---
 
-## 🛠️ Installation et Démarrage (Windows)
+## Installation et Démarrage
 
 Suivez ces étapes pour configurer et lancer le projet sur votre machine.
 
