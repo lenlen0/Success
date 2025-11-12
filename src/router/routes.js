@@ -39,6 +39,16 @@ const routes = [
     ]
   },
 
+  {
+    path: '/examU',
+    component: () => import('layouts/AdminLayout.vue'),
+    children: [
+      { path: '', component: () => import('pages/ExamUser.vue') }
+    ]
+  },
+
+
+
 
   {
     path: '/:catchAll(.*)*',
