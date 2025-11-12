@@ -44,16 +44,6 @@
               class="col"
               style="width:100%; margin-bottom: 16px;"
             />
-
-          <q-input
-              v-model.number="newQuizzTime"
-              type="number"
-              rounded
-              outlined
-              :label="'Temps (en minutes)'"
-              class="col"
-              style="width:100%;"
-            />
         </q-card-section>
         <q-card-actions align="right">
           <q-btn unelevated rounded color="purple-7" label="Annuler" v-close-popup />
@@ -70,19 +60,18 @@ import { ref } from 'vue'
 const columns = [
   { name: 'NOM', align: 'center', label: 'NOM', field: 'NOM', sortable: true },
   { name: 'Nombre_De_Questions', label: 'Nombre De Questions', field: 'Nombre_De_Questions', align: 'center'},
-  { name: 'temps', label: 'Temps (min)', field: 'temps' , align: 'center' },
   { name: 'Action', label: 'Action', field: 'Action' , align: 'center' }
 ]
 
 const initialRows = [
-  { NOM: 'QCM 1', Nombre_De_Questions: 16, temps: 23 },
-  { NOM: 'QCM 2', Nombre_De_Questions: 15, temps: 15 },
-  { NOM: 'QCM 3', Nombre_De_Questions: 20, temps: 30 },
-  { NOM: 'QCM 4', Nombre_De_Questions: 16, temps: 17 },
-  { NOM: 'QCM 5', Nombre_De_Questions: 54, temps: 60 },
-  { NOM: 'QCM 6', Nombre_De_Questions: 15, temps: 20 },
-  { NOM: 'QCM 7', Nombre_De_Questions: 30, temps: 45 },
-  { NOM: 'QCM 8', Nombre_De_Questions: 26, temps: 45 }
+  { NOM: 'QCM 1', Nombre_De_Questions: 16},
+  { NOM: 'QCM 2', Nombre_De_Questions: 15},
+  { NOM: 'QCM 3', Nombre_De_Questions: 20},
+  { NOM: 'QCM 4', Nombre_De_Questions: 16},
+  { NOM: 'QCM 5', Nombre_De_Questions: 54},
+  { NOM: 'QCM 6', Nombre_De_Questions: 15},
+  { NOM: 'QCM 7', Nombre_De_Questions: 30},
+  { NOM: 'QCM 8', Nombre_De_Questions: 26}
 ]
 
 export default {
@@ -91,14 +80,12 @@ export default {
     const showDialog = ref(false)
 
     const newQuizzName = ref('')
-    const newQuizzTime = ref(null)
 
     const editedQuizz = ref(null)
 
     function openAddDialog() {
       editedQuizz.value = null
       newQuizzName.value = ''
-      newQuizzTime.value = null
       showDialog.value = true
     }
 
@@ -108,23 +95,20 @@ export default {
       editedQuizz.value = row
 
       newQuizzName.value = row.NOM
-      newQuizzTime.value = row.temps
       showDialog.value = true
     }
 
 
     function handleSubmit() {
-      if (newQuizzName.value && newQuizzTime.value > 0) {
+      if (newQuizzName.value) {
         if (editedQuizz.value) {
 
           editedQuizz.value.NOM = newQuizzName.value
-          editedQuizz.value.temps = newQuizzTime.value
         } else {
 
           rows.value.push({
             NOM: newQuizzName.value,
             Nombre_De_Questions: 0,
-            temps: newQuizzTime.value
           })
         }
         showDialog.value = false
@@ -145,7 +129,6 @@ export default {
       rows,
       showDialog,
       newQuizzName,
-      newQuizzTime,
       editedQuizz,
       openAddDialog,
       handleSubmit,
