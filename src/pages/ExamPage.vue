@@ -40,7 +40,7 @@
         <q-card-section>
           <div class="row q-gutter-md">
             <q-input rounded outlined :label="'Nom'" class="col-11" />
-            <q-input rounded outlined :label="'Date'" class="col-11" />
+            <q-input rounded outlined :label="'Time'" class="col-11" />
             <q-input rounded outlined :label="'QCM'" class="col-11" />
             <q-select
               rounded
