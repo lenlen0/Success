@@ -33,42 +33,22 @@ L'application est conçue autour de deux rôles distincts avec des permissions s
 
 ---
 
-## 🛠️ Installation et Démarrage
+## 🛠️ Installation et Démarrage (Windows)
 
 Suivez ces étapes pour configurer et lancer le projet sur votre machine.
 
 ### 1. Prérequis Système
 
-1.  **Installer cURL** (Exemple pour Fedora) :
-    ```bash
-    sudo dnf install curl -y
-    ```
+Avant de cloner, assurez-vous d'avoir installé :
 
-2.  **Installer nvm** (Node Version Manager) :
-    ```bash
-    curl -o- [https://raw.githubusercontent.com/nvm-sh/nvm/master/install.sh](https://raw.githubusercontent.com/nvm-sh/nvm/master/install.sh) | bash
-    ```
+1.  [**Node.js (LTS)**](https://nodejs.org/en)
+2.  [**Git for Windows**](https://git-scm.com/downloads)
 
-3.  **Activer nvm** (vous devrez peut-être redémarrer votre terminal ou exécuter) :
-    ```bash
-    source ~/.bashrc
-    ```
-
-4.  **Installer Node.js** (version LTS 22.20.0) :
-    ```bash
-    nvm install --lts
-    ```
-
-5.  **Vérifier les installations** :
-    ```bash
-    node -v
-    npm -v
-    ```
-    *(Vous devriez voir les versions de Node et npm s'afficher)*
+*(Après l'installation, ouvrez un nouveau terminal (PowerShell ou "Git Bash") pour que les commandes `node`, `npm` et `git` soient reconnues.)*
 
 ### 2. Installation du Projet
 
-1.  **Cloner le dépôt** (placez-vous dans votre dossier de projets) :
+1.  **Cloner le dépôt** (ouvrez votre terminal et placez-vous dans votre dossier de projets) :
     ```bash
     git clone [https://git.s11.fr/24gajecki/Projet-Success](https://git.s11.fr/24gajecki/Projet-Success)
     ```
@@ -78,7 +58,7 @@ Suivez ces étapes pour configurer et lancer le projet sur votre machine.
     cd Projet-Success
     ```
 
-3.  **Installer les dépendances** (node_modules) :
+3.  **Installer les dépendances** (télécharge les modules nécessaires au projet) :
     ```bash
     npm install
     ```
@@ -94,4 +74,3 @@ Suivez ces étapes pour configurer et lancer le projet sur votre machine.
     ```bash
     quasar dev
     ```
-
