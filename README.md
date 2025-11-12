@@ -50,7 +50,7 @@ Avant de cloner, assurez-vous d'avoir installé :
 
 1.  **Cloner le dépôt** (ouvrez votre terminal et placez-vous dans votre dossier de projets) :
     ```bash
-    git clone [https://git.s11.fr/24gajecki/Projet-Success](https://git.s11.fr/24gajecki/Projet-Success)
+    git clone https://git.s11.fr/24gajecki/Projet-Success
     ```
 
 2.  **Aller dans le dossier du projet** :
