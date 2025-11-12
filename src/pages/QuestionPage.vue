@@ -74,12 +74,23 @@
         title="Questions ajoutées"
         :rows="questions"
         :columns="tableColumns"
+        :loading="loading"
         row-key="__rowKey"
         color="purple-7"
         card-class=""
         table-class=""
         table-header-class="bg-purple-1"
       >
+        <template #body-cell-Num="props">
+          <q-td :props="props">
+            {{ props.rowIndex + 1 }}
+          </q-td>
+        </template>
+        <template #body-cell-Nom="props">
+          <q-td :props="props">
+            {{ props.row.question || props.value || '-' }}
+          </q-td>
+        </template>
         <template #body-cell-reponses="props">
           <q-td :props="props">
             <ol style="margin: 0; padding-left: 18px;">
@@ -115,27 +126,80 @@
   </div>
 </template>
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 
 // État statique pour l'affichage visuel
 const popup = ref(false)
 const isEditMode = ref(false)
 const editQuestion = ref('Exemple de question')
 const editReponses = ref(['Réponse 1', 'Réponse 2', 'Réponse 3'])
+const loading = ref(false)
 
-// Données statiques pour le tableau
-const questions = ref([
-  {
-    __rowKey: 1,
-    question: 'Question exemple 1',
-    reponses: ['Réponse A', 'Réponse B', 'Réponse C']
-  },
-  {
-    __rowKey: 2,
-    question: 'Question exemple 2',
-    reponses: ['Réponse 1', 'Réponse 2']
+// Données pour le tableau (chargées depuis l'API)
+const questions = ref([])
+
+// Fonction pour charger les questions depuis l'API
+async function loadQuestions() {
+  loading.value = true
+  try {
+    const response = await fetch('http://10.0.52.211/success/api.php/question')
+    if (!response.ok) {
+      throw new Error(`Erreur HTTP: ${response.status}`)
+    }
+    const data = await response.json()
+    
+    // Transformer les données de l'API pour correspondre au format attendu
+    let questionsData = []
+    
+    if (Array.isArray(data)) {
+      questionsData = data
+    } else if (data.questions && Array.isArray(data.questions)) {
+      questionsData = data.questions
+    } else if (data.data && Array.isArray(data.data)) {
+      questionsData = data.data
+    } else {
+      questions.value = []
+      loading.value = false
+      return
+    }
+    
+    // Mapper les données selon la structure de la base de données
+    // Question table: idQuestion, name, idQuizz
+    // Answer table: idAnswer, name, isCorrect, idQuestion
+    questions.value = questionsData.map((item, index) => {
+      // Récupérer le texte de la question
+      const questionText = item.name || item.question || item.texte || item.nom || item.libelle || ''
+      
+      // Récupérer les réponses (peuvent être dans différents formats)
+      let reponses = []
+      if (item.answers && Array.isArray(item.answers)) {
+        reponses = item.answers.map(ans => ans.name || ans.text || ans.texte || ans)
+      } else if (item.reponses && Array.isArray(item.reponses)) {
+        reponses = item.reponses.map(rep => rep.name || rep.text || rep.texte || rep)
+      } else if (item.Answer && Array.isArray(item.Answer)) {
+        reponses = item.Answer.map(ans => ans.name || ans.text || ans.texte || ans)
+      } else if (Array.isArray(item.reponse)) {
+        reponses = item.reponse.map(rep => rep.name || rep.text || rep.texte || rep)
+      }
+      
+      return {
+        __rowKey: item.idQuestion || item.id || item.ID || index + 1,
+        question: questionText,
+        reponses: reponses
+      }
+    })
+  } catch {
+    // En cas d'erreur, on garde un tableau vide ou on affiche un message
+    questions.value = []
+  } finally {
+    loading.value = false
   }
-])
+}
+
+// Charger les questions au montage du composant
+onMounted(() => {
+  loadQuestions()
+})
 
 // Colonnes du q-table
 const tableColumns = [
@@ -144,7 +208,7 @@ const tableColumns = [
     required: true,
     label: 'Num',
     align: 'left',
-    field: (row, idx) => idx + 1,
+    field: () => null,
     sortable: false
   },
   {
