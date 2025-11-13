@@ -97,7 +97,7 @@ const columns = [
   { name: 'qcm', label: 'QCM', align: 'left', field: 'qcm' },
   { name: 'groupe', label: 'Groupe', align: 'left', field: 'groupe' },
   { name: 'status', label: 'Status', align: 'left', field: 'status' },
-  { name: 'reussite', label: '% Réussite', align: 'left', field: 'reussite' },
+  { name: 'reussite', label: '%Réussite', align: 'left', field: 'reussite' },
   { name: 'Code', label: 'Code', align: 'left', field: 'Code' },
   {
     name: 'action',
