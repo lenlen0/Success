@@ -63,7 +63,7 @@ CREATE TABLE IF NOT EXISTS BelongGroup (
 CREATE TABLE IF NOT EXISTS TakeExam (
     id_s11 INT NOT NULL,
     idExam INT NOT NULL,
-    date_exam DATETIME NOT NULL,
+    date_exam DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL,
     answer TEXT,
     grade FLOAT,
     PRIMARY KEY (id_s11, idExam),
