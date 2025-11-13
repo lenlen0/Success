@@ -40,10 +40,10 @@ const routes = [
   },
 
 {
-    path: '/Utilisateurs',
+    path: '/Didier',
     component: () => import('layouts/AdminLayout.vue'),
     children: [
-      { path: '', component: () => import('pages/UPage.vue') }
+      { path: '', component: () => import('pages/DidierPage.vue') }
     ]
  },
 

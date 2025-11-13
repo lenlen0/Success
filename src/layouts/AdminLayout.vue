@@ -75,7 +75,7 @@ const linksList = [
     title: 'Utilisateurs',
     caption: 'Gérer les utilisateurs',
     icon: 'account_circle',
-    link: 'https://localhost:9000/#/Utilisateurs'
+    link: 'https://localhost:9000/#/Didier'
   },
   {
     title: 'Déconnexion',
