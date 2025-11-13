@@ -94,7 +94,7 @@ function editRow(row) {
 }
 
 // ID de l'utilisateur courant
-const currentUserId = '1'
+const currentUserId = '2'
 
 // Récupération des données depuis l’API pour cet utilisateur
 onMounted(async () => {
