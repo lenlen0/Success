@@ -42,6 +42,7 @@
             <q-input rounded outlined :label="'Nom'" class="col-11" />
             <q-input rounded outlined :label="'Time'" class="col-11" />
             <q-input rounded outlined :label="'QCM'" class="col-11" />
+            <q-input rounded outlined :label="'Code'" class="col-11" />
             <q-select
               rounded
               standout="bg-grey-1"

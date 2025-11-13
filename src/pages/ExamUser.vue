@@ -100,7 +100,7 @@ function editRow(row) {
 // -----------------------------------------------------------
 // Simulation : utilisateur connecté
 // -----------------------------------------------------------
-const currentUserId = '2' // 🔥 ici tu choisis quel utilisateur "virtuel" tu veux simuler
+const currentUserId = '15' // 🔥 ici tu choisis quel utilisateur "virtuel" tu veux simuler
 
 // -----------------------------------------------------------
 // Récupération des données depuis ton API distante
