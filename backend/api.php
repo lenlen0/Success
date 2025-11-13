@@ -13,8 +13,6 @@ $Group = new Group();
 $User = new User();
 
 // En-t  tes pour le JSON et CORS
-header('Content-Type: application/json; charset=utf-8');
-header('Access-Control-Allow-Origin: *');
 header("Content-Type: application/json; charset=UTF-8");
 header("Access-Control-Allow-Origin: *");
 header('Access-Control-Allow-Methods: GET, POST');
