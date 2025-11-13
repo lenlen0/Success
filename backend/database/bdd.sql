@@ -25,7 +25,7 @@ CREATE TABLE IF NOT EXISTS Quizz (
 CREATE TABLE IF NOT EXISTS Exam (
     idExam INT PRIMARY KEY AUTO_INCREMENT,
     name VARCHAR(50) NOT NULL,
-    status VARCHAR(50),
+    status ENUM('Ouvert', 'Fermé', 'Entrainement') NOT NULL,
     code VARCHAR(50) UNIQUE NOT NULL,
     scale VARCHAR(50),
     hasMalus BOOLEAN NOT NULL,
