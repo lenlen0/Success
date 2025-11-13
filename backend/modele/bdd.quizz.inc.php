@@ -70,6 +70,20 @@ class Quizz extends ConnexionPDO {
         }
         return $resultat;
     }
+
+    public function addQuizz($name, $isEnable, $id_s11) {
+        try {
+            $req = $this->conn->prepare("INSERT INTO Quizz (name, isEnable, id_s11)
+                VALUES (:name, :isEnable,  :id_s11)");
+            $req->bindValue(':name', $name, PDO::PARAM_STR);
+            $req->bindValue(':isEnable', $isEnable, PDO::PARAM_INT);
+            $req->bindValue(':id_s11', $id_s11, PDO::PARAM_INT);
+            $resultat = $req->execute();
+        } catch (PDOException $e) {
+            die($e->getMessage());
+        }
+        return $resultat;
+    }
 }
 
 ?>
