@@ -55,16 +55,11 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 
-// -----------------------------------------------------------
 // Variables réactives
-// -----------------------------------------------------------
 const showDialog = ref(false)
 const rows = ref([])
 
-
-// -----------------------------------------------------------
 // Colonnes du tableau
-// -----------------------------------------------------------
 const columns = [
   { name: 'nom', label: 'Nom', align: 'left', field: 'nom' },
   { name: 'date', label: 'Date', align: 'left', field: 'date' },
@@ -84,56 +79,49 @@ const newEval = ref({
   Code: ''
 })
 
-// Fonction pour ajouter une nouvelle évaluation dans le tableau (temporaire côté client)
+// Ajouter une évaluation (temporaire côté client)
 function addEval() {
-  if (newEval.value.nom) {
-    rows.value.push({ ...newEval.value, reussite: `${newEval.value.reussite}%` })
+  if (newEval.value.Code) {
+    rows.value.push({ ...newEval.value })
     Object.keys(newEval.value).forEach(k => newEval.value[k] = '')
     showDialog.value = false
   }
 }
 
-// Fonction pour éditer une ligne (console log temporaire)
+// Éditer une ligne (console log temporaire)
 function editRow(row) {
   console.log('Modifier :', row)
 }
-// -----------------------------------------------------------
-// Simulation : utilisateur connecté
-// -----------------------------------------------------------
-const currentUserId = '1' // 🔥 ici tu choisis quel utilisateur "virtuel" tu veux simuler
 
-// -----------------------------------------------------------
-// Récupération des données depuis ton API distante
-// -----------------------------------------------------------
+// ID de l'utilisateur courant
+const currentUserId = '1'
+
+// Récupération des données depuis l’API pour cet utilisateur
 onMounted(async () => {
   try {
-    const response = await fetch('http://10.0.52.187/success/api.php/exam')
+    // 🔹 Utilisation directe de l'URL avec l'id utilisateur
+    const response = await fetch(`http://10.0.52.142/success/api.php/show_exam/${currentUserId}`)
     if (!response.ok) throw new Error('Erreur HTTP ' + response.status)
 
     const data = await response.json()
 
-    // 🧩 Filtrage pour ne garder que les examens de cet utilisateur
-    const filtered = data.filter(item => item.id_s11 === currentUserId)
-
-    // 🗂️ Mapping pour afficher correctement dans ton tableau Quasar
-    rows.value = filtered.map(item => ({
-      nom: item.nom,
-      date: item.Date,
-      qcm: item.QCM,
-      Note: item.Note,
-      Code: item.Code,
-      groupe: item.Groupe,
-      status: item.Status,
-      reussite: item['%Reussite']
+    // Mapping pour afficher correctement dans le tableau
+    rows.value = data.map(item => ({
+      nom: item.exam_name,
+      date: item.dateExam,
+      status: item.status,
+      Note: item.avg_grade,
+      Code: item.code,
+      groupe: item.group_name
     }))
 
-    console.log('Évaluations visibles pour id_s11 =', currentUserId, rows.value)
+    console.log('Évaluations pour l’utilisateur', currentUserId, rows.value)
   } catch (err) {
     console.error('Impossible de charger les données depuis la VM :', err)
   }
 })
-
 </script>
+
 
 <style scoped>
 .text-purple-12 {
