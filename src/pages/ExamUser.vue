@@ -30,6 +30,7 @@
       </q-table>
     </div>
 
+
     
   </q-page>
 </template>
@@ -50,10 +51,8 @@ const rows = ref([])
 const columns = [
   { name: 'nom', label: 'Nom', align: 'left', field: 'nom' },
   { name: 'date', label: 'Date', align: 'left', field: 'date' },
-  { name: 'qcm', label: 'QCM', align: 'left', field: 'qcm' },
-  { name: 'groupe', label: 'Groupe', align: 'left', field: 'groupe' },
   { name: 'status', label: 'Status', align: 'left', field: 'status' },
-  { name: 'reussite', label: '% Réussite', align: 'left', field: 'reussite' },
+  { name: 'Note', label: 'Note', align: 'left', field: 'Note' },
   {
     name: 'action',
     label: 'Action',
@@ -66,7 +65,7 @@ const columns = [
 // -----------------------------------------------------------
 // Simulation : utilisateur connecté
 // -----------------------------------------------------------
-const currentUserId = '1' // 🔥 ici tu choisis quel utilisateur "virtuel" tu veux simuler
+const currentUserId = '2' // 🔥 ici tu choisis quel utilisateur "virtuel" tu veux simuler
 
 // -----------------------------------------------------------
 // Récupération des données depuis ton API distante
@@ -86,6 +85,7 @@ onMounted(async () => {
       nom: item.nom,
       date: item.Date,
       qcm: item.QCM,
+      Note: item.Note,
       groupe: item.Groupe,
       status: item.Status,
       reussite: item['%Reussite']
