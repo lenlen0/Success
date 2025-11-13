@@ -29,12 +29,12 @@ class Exam extends ConnexionPDO {
     public function getAllExam() {
         $resultat = array();
         try {
-            $req = $this->conn->prepare("SELECT e.idExam, e.name AS exam_name, e.dateExam, e.status, QU.name AS quizz_name, g.name AS group_name, ROUND(AVG(te.grade), 2) AS avg_grade
+            $req = $this->conn->prepare("SELECT e.idExam, e.name AS exam_name, e.dateExam, e.status, e.code, QU.name AS quizz_name, g.name AS group_name, ROUND(AVG(te.grade), 2) AS avg_grade
             FROM Exam e
             INNER JOIN Quizz QU ON e.idQuizz = QU.idQuizz
             INNER JOIN `Group` g ON e.idGroup = g.idGroup
             INNER JOIN TakeExam te ON e.idExam = te.idExam
-            GROUP BY e.idExam, e.name, e.dateExam, e.status, QU.name, g.name
+            GROUP BY e.idExam, e.name, e.dateExam, e.status, e.code, QU.name, g.name
             ORDER BY e.dateExam DESC;");
             $req->execute();
 

@@ -3,10 +3,14 @@
 include "modele/bdd.question.inc.php";
 include "modele/bdd.quizz.inc.php";
 include "modele/bdd.exam.inc.php";
+include "modele/bdd.group.inc.php";
+include "modele/bdd.user.inc.php";
 
 $Question = new Question();
 $Quizz = new Quizz();
 $Exam = new Exam();
+$Group = new Group();
+$User = new User();
 
 // En-t  tes pour le JSON et CORS
 header('Content-Type: application/json; charset=utf-8');
@@ -62,6 +66,16 @@ $tab_resource = [
         'model' => $Exam,
         'requeteByID' => 'getExamByIDUser',
         'requete' => 'getAllExam'
+    ],
+    'show_group' => [
+        'model' => $Group,
+        'requeteByID' => 'getGroupByUser',
+        'requete' => 'getAllGroup'
+    ],
+    'show_user' => [
+        'model' => $User,
+        'requeteByID' => '',
+        'requete' => 'getAllUser'
     ]
 ];
 
