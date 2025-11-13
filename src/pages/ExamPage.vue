@@ -86,11 +86,10 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'  // Import ref pour variables réactives et onMounted pour fetch API
+import { ref, onMounted } from 'vue'
 
-const showDialog = ref(false) // Booléen pour afficher/cacher le dialog
+const showDialog = ref(false)
 
-// Colonnes du tableau
 const columns = [
   { name: 'nom', label: 'Nom', align: 'left', field: 'nom' },
   { name: 'date', label: 'Date', align: 'left', field: 'date' },
@@ -108,10 +107,8 @@ const columns = [
   }
 ]
 
-// Données initiales vides → seront remplacées par l'API
 const rows = ref([])
 
-// Objet pour stocker la nouvelle évaluation
 const newEval = ref({
   nom: '',
   date: '',
@@ -122,45 +119,41 @@ const newEval = ref({
   Malus: ''
 })
 
-// Fonction pour ajouter une nouvelle évaluation dans le tableau (temporaire côté client)
 function addEval() {
   if (newEval.value.nom) {
-    rows.value.push({ ...newEval.value, reussite: `${newEval.value.reussite}%` })
+    rows.value.push({ ...newEval.value, reussite: `${newEval.value.reussite || 0}%` })
     Object.keys(newEval.value).forEach(k => newEval.value[k] = '')
     showDialog.value = false
   }
 }
 
-// Fonction pour éditer une ligne (console log temporaire)
 function editRow(row) {
   console.log('Modifier :', row)
 }
 
-// --- NOUVEAU : Récupération des données depuis l'API sur la VM ---
 onMounted(async () => {
   try {
-    // Remplace IP_VM par l'IP de ta VM
-    const response = await fetch('http://10.0.52.187/success/api.php/exam') // Requête GET vers l'API
-    if (!response.ok) throw new Error('Erreur HTTP ' + response.status) // Vérifie que la requête a réussi
+    const response = await fetch('http://10.0.52.142/success/api.php/show_exam')
+    if (!response.ok) throw new Error('Erreur HTTP ' + response.status)
 
-    const data = await response.json() // Convertit la réponse en JSON
+    const data = await response.json()
 
-    // Mappe les champs pour qu'ils correspondent à tes colonnes du tableau
+    // 🧩 Adaptation selon la structure exacte de ton JSON
     rows.value = data.map(item => ({
-      nom: item.nom,              // Champ Nom
-      date: item.Date,            // Champ Date (majuscule selon API)
-      qcm: item.QCM,              // Champ QCM
-      groupe: item.Groupe,        // Champ Groupe
-      status: item.Status,      // Champ Status
-      Code: item.Code,          // Champ Code
-      reussite: item['%Reussite'] // Champ % Réussite
+      nom: item.exam_name,
+      date: item.dateExam,
+      qcm: item.quizz_name,
+      groupe: item.group_name,
+      status: item.status,
+      reussite: `${item.avg_grade * 5}%`, // Exemple : conversion note → pourcentage (optionnel)
+      Code: item.idExam
     }))
-
   } catch (err) {
     console.error('Impossible de charger les données depuis la VM :', err)
   }
 })
 </script>
+
 
 <style scoped>
 .text-purple-12 {

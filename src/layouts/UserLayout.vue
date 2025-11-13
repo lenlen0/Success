@@ -60,12 +60,6 @@ const linksList = [
     link: 'http://localhost:9000/#/ExamU'
   },
   {
-    title: 'Utilisateurs',
-    caption: 'Gérer les utilisateurs',
-    icon: 'account_circle',
-    link: 'http://localhost:9000/#/User'
-  },
-  {
     title: 'Déconnexion',
     caption: 'Quitter vers le portail de connexion',
     icon: 'logout',

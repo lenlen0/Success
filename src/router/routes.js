@@ -40,6 +40,14 @@ const routes = [
   },
 
 {
+    path: '/Utilisateurs',
+    component: () => import('layouts/AdminLayout.vue'),
+    children: [
+      { path: '', component: () => import('pages/DidierPage.vue') }
+    ]
+ },
+
+{
     path: '/ExamU',
     component: () => import('layouts/UserLayout.vue'),
     children: [
