@@ -10,11 +10,11 @@
           <q-card-section class="bg-purple-1 text-purple-10 q-mb-sm" style="width:100%;">
             <div class="text-h6">{{ isEditMode ? 'Modifier le groupe' : 'Nouveau groupe' }}</div>
           </q-card-section>
-          <q-input 
-            rounded 
-            outlined 
-            v-model="editNom" 
-            label="Nom du groupe" 
+          <q-input
+            rounded
+            outlined
+            v-model="editNom"
+            label="Nom du groupe"
             class="q-mb-sm"
             style="width: 90%;"
           />
@@ -28,7 +28,7 @@
             color="purple-7"
             @click="addGroup"
           />
-          <q-btn
+          <q-btn rounded
             v-if="isEditMode"
             label="Enregistrer"
             color="purple-7"
@@ -114,10 +114,10 @@ async function loadGroupes() {
       throw new Error(`Erreur HTTP: ${response.status}`)
     }
     const data = await response.json()
-    
+
     // Transformer les données de l'API pour correspondre au format attendu
     let groupesData = []
-    
+
     if (Array.isArray(data)) {
       groupesData = data
     } else if (data.groupes && Array.isArray(data.groupes)) {
@@ -129,15 +129,15 @@ async function loadGroupes() {
       loading.value = false
       return
     }
-    
+
     // Mapper les données selon la structure de la base de données
     groupes.value = groupesData.map((item, index) => {
       // Récupérer le nom du groupe
       const nomGroupe = item.Nom || item.name || item.nom || item.libelle || ''
-      
+
       // Récupérer le nombre d'utilisateurs
       const nbUsers = item.nbuser || item.nbUser || item.nb_users || item.nombreUtilisateurs || 0
-      
+
       return {
         __rowKey: item.idGroupe || item.id || item.ID || index + 1,
         Nom: nomGroupe,
