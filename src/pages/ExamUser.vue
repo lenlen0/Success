@@ -30,8 +30,25 @@
       </q-table>
     </div>
 
+    <!-- Dialog pour ajouter une nouvelle évaluation -->
+    <q-dialog v-model="showDialog" persistent>
+      <q-card style="min-width: 400px;">
+        <q-card-section class="bg-purple-1 text-purple-10">
+          <div class="text-h6">Ajouté évaluation</div>
+        </q-card-section>
 
-    
+        <q-card-section>
+          <div class="row q-gutter-md">
+            <q-input rounded outlined :label="'Code'" class="col-11" />
+          </div>
+        </q-card-section>
+
+        <q-card-actions align="right">
+          <q-btn unelevated rounded color="purple-7" label="Annuler" v-close-popup />
+          <q-btn unelevated rounded color="purple-7" label="Ajouter" @click="addEval" />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
   </q-page>
 </template>
 
@@ -53,6 +70,7 @@ const columns = [
   { name: 'date', label: 'Date', align: 'left', field: 'date' },
   { name: 'status', label: 'Status', align: 'left', field: 'status' },
   { name: 'Note', label: 'Note', align: 'left', field: 'Note' },
+  { name: 'Code', label: 'Code', align: 'left', field: 'Code' },  
   {
     name: 'action',
     label: 'Action',
@@ -62,6 +80,23 @@ const columns = [
   }
 ]
 
+const newEval = ref({
+  Code: ''
+})
+
+// Fonction pour ajouter une nouvelle évaluation dans le tableau (temporaire côté client)
+function addEval() {
+  if (newEval.value.nom) {
+    rows.value.push({ ...newEval.value, reussite: `${newEval.value.reussite}%` })
+    Object.keys(newEval.value).forEach(k => newEval.value[k] = '')
+    showDialog.value = false
+  }
+}
+
+// Fonction pour éditer une ligne (console log temporaire)
+function editRow(row) {
+  console.log('Modifier :', row)
+}
 // -----------------------------------------------------------
 // Simulation : utilisateur connecté
 // -----------------------------------------------------------
@@ -86,6 +121,7 @@ onMounted(async () => {
       date: item.Date,
       qcm: item.QCM,
       Note: item.Note,
+      Code: item.Code,
       groupe: item.Groupe,
       status: item.Status,
       reussite: item['%Reussite']

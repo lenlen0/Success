@@ -54,11 +54,25 @@
               rounded
               standout="bg-grey-1"
               v-model="newEval.status"
-              :options="['En cours', 'Terminé', 'Entrainement']"
+              :options="['En cours', 'Fermer', 'Entrainement']"
               label="Status"
               class="col-11"
             />
-          </div>
+            <q-card-actions align="center" class="q-gutter-md">
+              <q-checkbox
+              v-model="newEval.Barem"
+              label="Barême"
+              color="purple-7"
+              keep-color
+            />
+              <q-checkbox
+              v-model="newEval.Malus"
+              label="Malus"
+              color="purple-7"
+              keep-color
+            />
+            </q-card-actions>
+        </div>
         </q-card-section>
 
         <q-card-actions align="right">
@@ -83,6 +97,7 @@ const columns = [
   { name: 'groupe', label: 'Groupe', align: 'left', field: 'groupe' },
   { name: 'status', label: 'Status', align: 'left', field: 'status' },
   { name: 'reussite', label: '% Réussite', align: 'left', field: 'reussite' },
+  { name: 'Code', label: 'Code', align: 'left', field: 'Code' },
   {
     name: 'action',
     label: 'Action',
@@ -100,7 +115,10 @@ const newEval = ref({
   nom: '',
   date: '',
   qcm: '',
-  groupe: ''
+  groupe: '',
+  Code: '',
+  Barem: '',
+  Malus: ''
 })
 
 // Fonction pour ajouter une nouvelle évaluation dans le tableau (temporaire côté client)
@@ -133,6 +151,7 @@ onMounted(async () => {
       qcm: item.QCM,              // Champ QCM
       groupe: item.Groupe,        // Champ Groupe
       status: item.Status,      // Champ Status
+      Code: item.Code,          // Champ Code
       reussite: item['%Reussite'] // Champ % Réussite
     }))
 
