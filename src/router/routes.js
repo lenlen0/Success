@@ -40,7 +40,7 @@ const routes = [
   },
 
 {
-    path: '/Didier',
+    path: '/Utilisateurs',
     component: () => import('layouts/AdminLayout.vue'),
     children: [
       { path: '', component: () => import('pages/DidierPage.vue') }
