@@ -15,6 +15,10 @@ $User = new User();
 // En-t  tes pour le JSON et CORS
 header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: *');
+header("Content-Type: application/json; charset=UTF-8");
+header("Access-Control-Allow-Origin: *");
+header('Access-Control-Allow-Methods: GET, POST');
+header("Access-Control-Allow-Headers: Content-Type");
 
 // R  pertoire o   sont stock  s les fichiers JSON
 //$basePath = __DIR__ . '/data/';
@@ -40,6 +44,43 @@ if (count($pathParts) === 0 || empty($pathParts[0])) {
 
 $resource = basename($pathParts[0] ?? '');
 $id = $pathParts[1] ?? null;
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+
+    $input = file_get_contents("php://input");
+    $data = json_decode($input, true);
+
+    if (json_last_error() !== JSON_ERROR_NONE) {
+        http_response_code(400);
+        echo json_encode(["status" => "error", "message" => "JSON invalide."]);
+        exit;
+    }
+
+    switch ($resource) {
+        case 'add_user':
+            if (empty($data['pwd']) || empty($data['role']) || empty($data['firstname']) || empty($data['lastname'])) {
+                http_response_code(422);
+                echo json_encode(["status" => "error", "message" => "Champs 'pwd', 'role', 'firstname' et 'lastname' requis."]);
+                exit;
+            }
+
+            $newUser = $User->addUser($data['pwd'], $data['role'], $data['firstname'], $data['lastname']);
+
+            if (!$newUser) {
+                http_response_code(500);
+                echo json_encode(["status" => "error"]);
+                exit;
+            }
+
+            echo json_encode(["status" => "success"], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+            exit;
+
+        default:
+            http_response_code(404);
+            echo json_encode(["error" => "Ressource '$resource' introuvable"]);
+            break;
+    }
+}
 
 $tab_resource = [
     'tablequestion' => [
