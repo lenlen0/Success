@@ -4,7 +4,7 @@ USE Success;
 CREATE TABLE IF NOT EXISTS User (
     id_s11 INT PRIMARY KEY AUTO_INCREMENT,
     pwd VARCHAR(255) NOT NULL,
-    role ENUM('admin', 'teacher', 'student') NOT NULL,
+    role ENUM('admin', 'student') NOT NULL,
     lastname VARCHAR(50) NOT NULL,
     firstname VARCHAR(50) NOT NULL
 );
