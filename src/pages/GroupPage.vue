@@ -1,5 +1,11 @@
 <template>
   <div class="q-pa-md q-gutter-sm" style="background-color: #FFF4FF; min-height: 100vh;">
+    <!-- Titre -->
+    <h4
+      class="text-purple-12 text-weight-bold"
+      style="margin-bottom: 8px;"
+    >Groupe</h4>
+
     <!-- Bouton pour ouvrir la popup -->
     <q-btn round color="purple-7" icon="add" @click="openPopup" />
 
@@ -43,7 +49,6 @@
       <q-table
         flat
         bordered
-        title="Liste des groupes"
         :rows="groupes"
         :columns="tableColumns"
         :loading="loading"
@@ -238,3 +243,9 @@ const tableColumns = [
   }
 ]
 </script>
+
+<style scoped>
+.text-purple-12 {
+  color: var(--q-color-purple-12);
+}
+</style>
