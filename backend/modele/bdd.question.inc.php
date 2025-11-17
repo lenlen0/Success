@@ -46,6 +46,19 @@ class Question extends ConnexionPDO {
         }
         return $resultat;
     }
+
+    public function addQuestion($name, $idQuizz) {
+        try {
+            $req = $this->conn->prepare("INSERT INTO Question (name, idQuizz)
+                VALUES (:name, :idQuizz)");
+            $req->bindValue(':name', $name, PDO::PARAM_STR);
+            $req->bindValue(':idQuizz', $idQuizz, PDO::PARAM_INT);
+            $resultat = $req->execute();
+        } catch (PDOException $e) {
+            die($e->getMessage());
+        }
+        return $resultat;
+    }
 }
 
 ?>

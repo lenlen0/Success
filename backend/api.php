@@ -13,8 +13,6 @@ $Group = new Group();
 $User = new User();
 
 // En-t  tes pour le JSON et CORS
-header('Content-Type: application/json; charset=utf-8');
-header('Access-Control-Allow-Origin: *');
 header("Content-Type: application/json; charset=UTF-8");
 header("Access-Control-Allow-Origin: *");
 header('Access-Control-Allow-Methods: GET, POST');
@@ -67,6 +65,79 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $newUser = $User->addUser($data['pwd'], $data['role'], $data['firstname'], $data['lastname']);
 
             if (!$newUser) {
+                http_response_code(500);
+                echo json_encode(["status" => "error"]);
+                exit;
+            }
+
+            echo json_encode(["status" => "success"], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+            exit;
+
+        case 'add_group':
+            if (empty($data['name']) || empty($data['id_s11'])) {
+                http_response_code(422);
+                echo json_encode(["status" => "error", "message" => "Champs 'name' et 'id_s11' requis."]);
+                exit;
+            }
+
+            $newGroup = $Group->addGroup($data['name'], $data['id_s11']);
+
+            if (!$newGroup) {
+                http_response_code(500);
+                echo json_encode(["status" => "error"]);
+                exit;
+            }
+
+            echo json_encode(["status" => "success"], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+            exit;
+
+        case 'add_quizz':
+            if (empty($data['name']) || empty($data['isEnable']) || empty($data['id_s11'])) {
+                http_response_code(422);
+                echo json_encode(["status" => "error", "message" => "Champs 'name', 'isEnable' et 'id_s11' requis."]);
+                exit;
+            }
+
+            $newQuizz = $Quizz->addQuizz($data['name'], $data['isEnable'], $data['id_s11']);
+
+            if (!$newQuizz) {
+                http_response_code(500);
+                echo json_encode(["status" => "error"]);
+                exit;
+            }
+
+            echo json_encode(["status" => "success"], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+            exit;
+
+        case 'add_exam':
+            if (empty($data['name']) || empty($data['status']) || empty($data['code']) || empty($data['scale']) || empty($data['hasMalus'])
+                || empty($data['time']) || empty($data['idQuizz']) || empty($data['idGroup'])) {
+                http_response_code(422);
+                echo json_encode(["status" => "error", "message" => "Champs 'name', 'status', 'code', 'scale', 'hasMalus', 'time', 'idQuizz' et 'idGroup' requis."]);
+                exit;
+            }
+
+            $newExam = $Exam->addExam($data['name'], $data['status'], $data['code'], $data['scale'], $data['hasMalus'], $data['time'], $data['idQuizz'], $data['idGroup']);
+
+            if (!$newExam) {
+                http_response_code(500);
+                echo json_encode(["status" => "error"]);
+                exit;
+            }
+
+            echo json_encode(["status" => "success"], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+            exit;
+
+        case 'add_question':
+            if (empty($data['name']) || empty($data['idQuizz'])) {
+                http_response_code(422);
+                echo json_encode(["status" => "error", "message" => "Champs 'name' et 'idQuizz' requis."]);
+                exit;
+            }
+
+            $newQuestion = $Question->addQuestion($data['name'], $data['idQuizz']);
+
+            if (!$newQuestion) {
                 http_response_code(500);
                 echo json_encode(["status" => "error"]);
                 exit;
