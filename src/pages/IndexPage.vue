@@ -5,7 +5,7 @@
         <p class="q-mb-xl text-subtitle1 text-grey-9">Page de connexion</p>
         <div style="width: 400px;">
           <q-input rounded outlined v-model="text" label="Identifiant s11" class="col q-mb-md"/>
-          <q-input rounded outlined v-model="text" label="Mot de passe" class="col q-mb-xl"/>
+          <q-input rounded outlined v-model="text" type="password" label="Mot de passe" class="col q-mb-xl"/>
           <q-btn unelevated rounded color="purple-7" label="Connexion" class="q-px-xl q-py-sm"/>
         </div>
       </div>
