@@ -36,16 +36,15 @@
 
         <q-card-section>
           <div class="row q-gutter-md">
-            <q-input v-model="newUser.Id" rounded outlined label="Id" class="col-11" />
             <q-input v-model="newUser.PWD" rounded outlined label="Mot de passe" class="col-11" />
             <q-input v-model="newUser.Nom" rounded outlined label="Nom" class="col-11" />
             <q-input v-model="newUser.Prenom" rounded outlined label="Prénom" class="col-11" />
             <q-select
               rounded
               standout="bg-grey-1"
-              v-model="newUser.status"
-              :options="['Admin', 'Teacher', 'User']"
-              label="Statut"
+              v-model="newUser.role"
+              :options="['admin', 'student']"
+              label="Role"
               class="col-11"
             />
           </div>
@@ -53,7 +52,14 @@
 
         <q-card-actions align="right">
           <q-btn unelevated rounded color="purple-7" label="Annuler" v-close-popup />
-          <q-btn unelevated rounded color="purple-7" label="Ajouter" @click="addUser" />
+          <q-btn
+          unelevated
+          rounded
+          color="purple-7"
+          label="Ajouter"
+          @click="addUser(newUser.PWD, newUser.role, newUser.Prenom, newUser.Nom)"
+        />
+
         </q-card-actions>
       </q-card>
     </q-dialog>
@@ -72,7 +78,7 @@ const columns = [
   { name: 'Nom', label: 'Nom', align: 'left', field: 'Nom' },
   { name: 'Prenom', label: 'Prénom', align: 'left', field: 'Prenom' },
   { name: 'PWD', label: 'Mot de passe', align: 'left', field: 'PWD' },
-  { name: 'status', label: 'Statut', align: 'left', field: 'status' },
+  { name: 'role', label: 'Role', align: 'left', field: 'role' },
   {
     name: 'action',
     label: 'Actions',
@@ -84,21 +90,40 @@ const columns = [
 
 // Nouvel utilisateur
 const newUser = ref({
-  Id: '',
   Nom: '',
   Prenom: '',
   PWD: '',
-  status: ''
+  role: ''
 })
 
-// Fonction pour ajouter un utilisateur localement (client)
-function addUser() {
-  if (newUser.value.Nom && newUser.value.Prenom) {
-    rows.value.push({ ...newUser.value })
-    Object.keys(newUser.value).forEach(k => (newUser.value[k] = ''))
-    showDialog.value = false
+async function addUser(pwd, role, prenom, nom) {
+  try {
+    const response = await fetch("http://10.0.52.142/success/api.php/add_user", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        pwd: pwd,
+        role: role,
+        firstname: prenom,
+        lastname: nom
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error("Erreur API " + response.status);
+    }
+
+    const data = await response.json();
+    console.log("Utilisateur ajouté :", data);
+    return data;
+  } catch (err) {
+    console.error("Erreur", err);
   }
 }
+
+
 
 function editRow(row) {
   console.log('Modifier :', row)
