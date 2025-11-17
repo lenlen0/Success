@@ -69,8 +69,3 @@ Avant de cloner, assurez-vous d'avoir installé :
     ```bash
     npm run dev
     ```
-
-2.  **Alternative (via Quasar CLI)** :
-    ```bash
-    quasar dev
-    ```
