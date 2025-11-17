@@ -52,9 +52,9 @@ class Exam extends ConnexionPDO {
             $req->bindValue(':name', $name, PDO::PARAM_STR);
             $req->bindValue(':status', $status, PDO::PARAM_STR);
             $req->bindValue(':code', $code, PDO::PARAM_STR);
-            $req->bindValue(':scale', $scale, PDO::PARAM_STR);
+            $req->bindValue(':scale', $scale, PDO::PARAM_INT);
             $req->bindValue(':hasMalus', $hasMalus, PDO::PARAM_INT);
-            $req->bindValue(':time', $time, PDO::PARAM_STR);
+            $req->bindValue(':time', $time, PDO::PARAM_INT);
             $req->bindValue(':idQuizz', $idQuizz, PDO::PARAM_INT);
             $req->bindValue(':idGroup', $idGroup, PDO::PARAM_INT);
             $resultat = $req->execute();
