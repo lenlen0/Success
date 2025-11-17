@@ -88,6 +88,28 @@ const columns = [
   }
 ]
 
+async function loadUsers() {
+  try {
+    const response = await fetch('http://10.0.52.142/success/api.php/show_user')
+    if (!response.ok) throw new Error('Erreur HTTP ' + response.status)
+
+    const data = await response.json()
+
+    // 🧩 Adapter les données à tes colonnes
+    rows.value = data.map(item => ({
+      Id: item.id_s11,
+      Nom: item.lastname,
+      Prenom: item.firstname,
+      PWD: '********', // Masqué pour sécurité
+      role: item.role.includes('admin') ? 'Admin'
+        : item.role.includes('teacher') ? 'Teacher'
+        : 'Student'
+    }))
+  } catch (err) {
+    console.error('Impossible de charger les utilisateurs :', err)
+  }
+}
+
 // Nouvel utilisateur
 const newUser = ref({
   Nom: '',
@@ -117,7 +139,14 @@ async function addUser(pwd, role, prenom, nom) {
 
     const data = await response.json();
     console.log("Utilisateur ajouté :", data);
+
+    if (data.status === "success") {
+      showDialog.value = false
+      await loadUsers()
+    }
+
     return data;
+
   } catch (err) {
     console.error("Erreur", err);
   }
@@ -134,27 +163,7 @@ function deleteRow(row) {
 }
 
 // Chargement depuis ton API
-onMounted(async () => {
-  try {
-    const response = await fetch('http://10.0.52.142/success/api.php/show_user')
-    if (!response.ok) throw new Error('Erreur HTTP ' + response.status)
-
-    const data = await response.json()
-
-    // 🧩 Adapter les données à tes colonnes
-    rows.value = data.map(item => ({
-      Id: item.id_s11,
-      Nom: item.lastname,
-      Prenom: item.firstname,
-      PWD: '********', // Masqué pour sécurité
-      status: item.lastname.includes('admin') ? 'Admin'
-        : item.lastname.includes('teacher') ? 'Teacher'
-        : 'User'
-    }))
-  } catch (err) {
-    console.error('Impossible de charger les utilisateurs :', err)
-  }
-})
+onMounted(loadUsers)
 </script>
 
 <style scoped>
