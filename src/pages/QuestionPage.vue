@@ -152,10 +152,10 @@ async function loadQuestions() {
       throw new Error(`Erreur HTTP: ${response.status}`)
     }
     const data = await response.json()
-    
+
     // Transformer les données de l'API pour correspondre au format attendu
     let questionsData = []
-    
+
     if (Array.isArray(data)) {
       questionsData = data
     } else if (data.questions && Array.isArray(data.questions)) {
@@ -167,14 +167,14 @@ async function loadQuestions() {
       loading.value = false
       return
     }
-    
+
     // Mapper les données selon la structure de la base de données
     // Question table: idQuestion, name, idQuizz
     // Answer table: idAnswer, name, isCorrect, idQuestion
     questions.value = questionsData.map((item, index) => {
       // Récupérer le texte de la question
       const questionText = item.name || item.question || item.texte || item.nom || item.libelle || ''
-      
+
       // Récupérer les réponses (peuvent être dans différents formats)
       let reponses = []
       if (item.answers && Array.isArray(item.answers)) {
@@ -186,7 +186,7 @@ async function loadQuestions() {
       } else if (Array.isArray(item.reponse)) {
         reponses = item.reponse.map(rep => rep.name || rep.text || rep.texte || rep)
       }
-      
+
       return {
         __rowKey: item.idQuestion || item.id || item.ID || index + 1,
         question: questionText,
