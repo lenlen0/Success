@@ -33,6 +33,17 @@ class User extends ConnexionPDO {
         }
         return $resultat;
     }
+
+    public function deleteUserByID($id_s11) {
+        try {
+            $req = $this->conn->prepare("DELETE FROM User WHERE id_s11 = :id_s11");
+            $req->bindValue(':id_s11', $id_s11, PDO::PARAM_INT);
+            $resultat = $req->execute();
+        } catch (PDOException $e) {
+            die($e->getMessage());
+        }
+        return $resultat;
+    }
 }
 
 ?>

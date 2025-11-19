@@ -151,6 +151,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             echo json_encode(["status" => "success"], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
             exit;
 
+        case 'del_user':
+            if (empty($data['id_s11'])) {
+                http_response_code(422);
+                echo json_encode(["status" => "error", "message" => "Champs 'id_s11' requis pour la supression."]);
+                exit;
+            }
+
+            $delUser = $User->deleteUserByID($data['id_s11']);
+
+            if (!$delUser) {
+                http_response_code(500);
+                echo json_encode(["status" => "error"]);
+                exit;
+            }
+
+            echo json_encode(["status" => "success"], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+            exit;
+
         default:
             http_response_code(404);
             echo json_encode(["error" => "Ressource '$resource' introuvable"]);

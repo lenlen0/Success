@@ -155,12 +155,33 @@ async function addUser(pwd, role, prenom, nom) {
 
 
 function editRow(row) {
-  console.log('Modifier :', row)
+  console.log('Modifier :', row.Id)
 }
 
-function deleteRow(row) {
-  rows.value = rows.value.filter(r => r.Id !== row.Id)
+async function deleteRow(row) {
+  try {
+    const response = await fetch('http://10.0.52.142/success/api.php/del_user', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ id_s11: row.Id })
+    });
+    if (!response.ok) throw new Error('Erreur HTTP ' + response.status);
+
+    const data = await response.json();
+
+    if (data.status === 'success') {
+      console.log('Utilisateur', row.Id, 'supprimé avec succès');
+      await loadUsers();
+    } else {
+      console.error('Erreur lors de la suppression:', data.message);
+    }
+  } catch (err) {
+    console.error('Impossible de supprimer utilisateur :', err);
+  }
 }
+
 
 // Chargement depuis ton API
 onMounted(loadUsers)
