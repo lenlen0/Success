@@ -19,7 +19,7 @@
           <q-input
             rounded
             outlined
-            v-model="editNom"
+            v-model="newGroup.name"
             label="Nom du groupe"
             class="q-mb-sm"
             style="width: 90%;"
@@ -32,7 +32,7 @@
             v-if="!isEditMode"
             label="Ajouter"
             color="purple-7"
-            @click="addGroup"
+            @click="addGroup(newGroup.name)"
           />
           <q-btn rounded
             v-if="isEditMode"
@@ -110,11 +110,15 @@ const loading = ref(false)
 // Données pour le tableau (chargées depuis l'API)
 const groupes = ref([])
 
+const newGroup = ref({
+  name: ''
+})
+
 // Fonction pour charger les groupes depuis l'API
 async function loadGroupes() {
   loading.value = true
   try {
-    const response = await fetch('http://10.0.52.212/success/api.php/groupe')
+    const response = await fetch('http://10.0.52.142/success/api.php/show_group')
     if (!response.ok) {
       throw new Error(`Erreur HTTP: ${response.status}`)
     }
@@ -174,15 +178,39 @@ function closePopup() {
 }
 
 // Fonction pour ajouter un groupe
-function addGroup() {
-  if (editNom.value.trim()) {
-    const newGroup = {
-      __rowKey: groupes.value.length + 1,
-      Nom: editNom.value.trim(),
-      nbuser: 0
+async function addGroup(nom_groupe) {
+  try {
+    const response = await fetch("http://10.0.52.142/success/api.php/add_group", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        name: nom_groupe,
+        id_s11: 1
+      })
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Erreur API ${response.status}: ${errorText}`);
     }
-    groupes.value.push(newGroup)
-    closePopup()
+
+    const data = await response.json();
+    console.log("Groupe ajouté :", data);
+
+    if (data.status === "success") {
+      await closePopup()
+      await loadGroupes()
+    } else {
+      console.error("Erreur lors de l'ajout :", data.message || data);
+    }
+
+    return data;
+
+  } catch (err) {
+    console.error("Erreur lors de l'ajout du groupe :", err);
+    alert(`Erreur lors de l'ajout : ${err.message}`);
   }
 }
 
