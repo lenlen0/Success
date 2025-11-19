@@ -209,7 +209,7 @@ $tab_resource = [
     ],
     'show_user' => [
         'model' => $User,
-        'requeteByID' => '',
+        'requeteByID' => 'getUserByID',
         'requete' => 'getAllUser'
     ]
 ];

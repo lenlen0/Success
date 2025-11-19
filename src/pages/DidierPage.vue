@@ -63,6 +63,44 @@
         </q-card-actions>
       </q-card>
     </q-dialog>
+
+    <!-- Dialog pour modifier un utilisateur -->
+    <q-dialog v-model="showEditDialog" persistent>
+      <q-card style="min-width: 400px;">
+        <q-card-section class="bg-purple-1 text-purple-10">
+          <div class="text-h6">Modifier un utilisateur</div>
+        </q-card-section>
+
+        <q-card-section>
+          <div class="row q-gutter-md">
+            <h4 class="text-purple-10 q-my-md text-h6">ID de l'utilisateur : {{editUser.Id}}</h4>
+            <q-input v-model="editUser.PWD" rounded outlined label="Mot de passe" class="col-11" />
+            <q-input v-model="editUser.Nom" rounded outlined label="Nom" class="col-11" />
+            <q-input v-model="editUser.Prenom" rounded outlined label="Prénom" class="col-11" />
+            <q-select
+              rounded
+              standout="bg-grey-1"
+              v-model="editUser.role"
+              :options="['admin', 'student']"
+              label="Role"
+              class="col-11"
+            />
+          </div>
+        </q-card-section>
+
+        <q-card-actions align="right">
+          <q-btn unelevated rounded color="purple-7" label="Annuler" v-close-popup />
+          <q-btn
+          unelevated
+          rounded
+          color="purple-7"
+          label="Ajouter"
+          @click="editUserFunc(editUser.Id, editUser.PWD, editUser.role, editUser.Prenom, editUser.Nom)"
+        />
+
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
   </q-page>
 </template>
 
@@ -70,6 +108,7 @@
 import { ref, onMounted } from 'vue'
 
 const showDialog = ref(false)
+const showEditDialog = ref(false)
 const rows = ref([])
 
 // Colonnes du tableau
@@ -100,7 +139,7 @@ async function loadUsers() {
       Id: item.id_s11,
       Nom: item.lastname,
       Prenom: item.firstname,
-      PWD: '********', // Masqué pour sécurité
+      PWD: item.pwd,
       role: item.role.includes('admin') ? 'Admin'
         : item.role.includes('teacher') ? 'Teacher'
         : 'Student'
@@ -112,6 +151,14 @@ async function loadUsers() {
 
 // Nouvel utilisateur
 const newUser = ref({
+  Nom: '',
+  Prenom: '',
+  PWD: '',
+  role: ''
+})
+
+const editUser = ref({
+  Id: '',
   Nom: '',
   Prenom: '',
   PWD: '',
@@ -152,10 +199,42 @@ async function addUser(pwd, role, prenom, nom) {
   }
 }
 
-
-
 function editRow(row) {
-  console.log('Modifier :', row.Id)
+  editUser.value = {
+    Id: row.Id,
+    Nom: row.Nom,
+    Prenom: row.Prenom,
+    PWD: row.PWD,
+    role: row.role
+  }
+  showEditDialog.value = true
+}
+
+async function editUserFunc(id, pwd, role, prenom, nom) {
+  try {
+    const response = await fetch(`http://10.0.52.142/success/api.php/show_user/${id}`)
+    if (!response.ok) throw new Error('Erreur HTTP ' + response.status)
+
+    const data = await response.json();
+    if(data[0].pwd === pwd) {
+      // EditUser sans modification du mdp
+      await EditUserNoPasswordEdit(id, role, prenom, nom);
+    } else {
+      //EditUser modification mdp
+      await EditUserWPasswordEdit(id, pwd, role, prenom, nom);
+    }
+
+  } catch (err) {
+    console.error('Impossible de charger les utilisateurs :', err)
+  }
+}
+
+async function EditUserNoPasswordEdit(id, role, prenom, nom) {
+
+}
+
+async function EditUserWPasswordEdit(id, pwd, role, prenom, nom) {
+
 }
 
 async function deleteRow(row) {

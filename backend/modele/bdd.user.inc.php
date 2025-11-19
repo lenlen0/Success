@@ -7,7 +7,21 @@ class User extends ConnexionPDO {
     public function getAllUser() {
         $resultat = array();
         try {
-            $req = $this->conn->prepare("SELECT id_s11, lastname, firstname, role FROM User");
+            $req = $this->conn->prepare("SELECT id_s11, lastname, firstname, role, pwd FROM User");
+            $req->execute();
+
+            $resultat = $req->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            die($e->getMessage());
+        }
+        return $resultat;
+    }
+
+    public function getUserByID($id_s11) {
+        $resultat = array();
+        try {
+            $req = $this->conn->prepare("SELECT id_s11, lastname, firstname, role, pwd FROM User WHERE id_s11 = :id_s11");
+            $req->bindValue(':id_s11', $id_s11, PDO::PARAM_INT);
             $req->execute();
 
             $resultat = $req->fetchAll(PDO::FETCH_ASSOC);
