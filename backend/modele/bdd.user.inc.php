@@ -58,6 +58,37 @@ class User extends ConnexionPDO {
         }
         return $resultat;
     }
+
+    public function modifyUserWithNoPasswordChange($id_s11, $role, $firstname, $lastname) {
+        try {
+            $req = $this->conn->prepare("UPDATE User SET role = :role, firstname = :firstname, lastname = :lastname WHERE id_s11 = :id_s11");
+            $req->bindValue(':id_s11', $id_s11, PDO::PARAM_INT);
+            $req->bindValue(':role', $role, PDO::PARAM_STR);
+            $req->bindValue(':firstname', $firstname, PDO::PARAM_STR);
+            $req->bindValue(':lastname', $lastname, PDO::PARAM_STR);
+            $resultat = $req->execute();
+        } catch (PDOException $e) {
+            die($e->getMessage());
+        }
+        return $resultat;
+    }
+
+    public function modifyUserWithPasswordChange($id_s11, $pwd, $role, $firstname, $lastname) {
+        try {
+            $hashed_pwd = password_hash($pwd, PASSWORD_DEFAULT);
+
+            $req = $this->conn->prepare("UPDATE User SET pwd = :pwd, role = :role, firstname = :firstname, lastname = :lastname WHERE id_s11 = :id_s11");
+            $req->bindValue(':id_s11', $id_s11, PDO::PARAM_INT);
+            $req->bindValue(':pwd', $hashed_pwd, PDO::PARAM_STR);
+            $req->bindValue(':role', $role, PDO::PARAM_STR);
+            $req->bindValue(':firstname', $firstname, PDO::PARAM_STR);
+            $req->bindValue(':lastname', $lastname, PDO::PARAM_STR);
+            $resultat = $req->execute();
+        } catch (PDOException $e) {
+            die($e->getMessage());
+        }
+        return $resultat;
+    }
 }
 
 ?>
