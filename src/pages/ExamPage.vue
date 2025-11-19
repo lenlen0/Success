@@ -39,15 +39,15 @@
 
         <q-card-section>
           <div class="row q-gutter-md">
-            <q-input rounded outlined :label="'Nom'" class="col-11" />
-            <q-input rounded outlined :label="'Time'" class="col-11" />
-            <q-input rounded outlined :label="'QCM'" class="col-11" />
-            <q-input rounded outlined :label="'Code'" class="col-11" />
+            <q-input rounded outlined v-model="newEval.nom" :label="'Nom'" class="col-11" />
+            <q-input rounded outlined v-model="newEval.time" :label="'Time'" class="col-11" type="number" />
+            <q-input rounded outlined v-model="newEval.qcm" :label="'QCM'" class="col-11" />
+            <q-input rounded outlined v-model="newEval.Code" :label="'Code'" class="col-11" />
             <q-select
               rounded
               standout="bg-grey-1"
               v-model="newEval.groupe"
-              :options="['A', 'B', 'C']"
+              :options="groupOptions"
               label="Groupe"
               class="col-11"
             />
@@ -61,17 +61,17 @@
             />
             <q-card-actions align="center" class="q-gutter-md">
               <q-checkbox
-              v-model="newEval.Barem"
-              label="Barême"
-              color="purple-7"
-              keep-color
-            />
+                v-model="newEval.Barem"
+                label="Barême"
+                color="purple-7"
+                keep-color
+              />
               <q-checkbox
-              v-model="newEval.Malus"
-              label="Malus"
-              color="purple-7"
-              keep-color
-            />
+                v-model="newEval.Malus"
+                label="Malus"
+                color="purple-7"
+                keep-color
+              />
             </q-card-actions>
         </div>
         </q-card-section>
@@ -111,19 +111,89 @@ const rows = ref([])
 
 const newEval = ref({
   nom: '',
-  date: '',
+  time: 60,
   qcm: '',
-  groupe: '',
+  groupe: null,
   Code: '',
-  Barem: '',
-  Malus: ''
+  status: 'En cours',
+  Barem: false,
+  Malus: false
 })
 
-function addEval() {
-  if (newEval.value.nom) {
-    rows.value.push({ ...newEval.value, reussite: `${newEval.value.reussite || 0}%` })
-    Object.keys(newEval.value).forEach(k => newEval.value[k] = '')
-    showDialog.value = false
+// Options pour le q-select des groupes
+const groupOptions = ref([])
+
+// Charger les groupes depuis l'API
+async function loadGroups() {
+  try {
+    const res = await fetch('http://10.0.52.142/success/api.php/show_group')
+    const data = await res.json()
+    groupOptions.value = data.map(g => ({
+      label: g.name,
+      value: g.idGroup
+    }))
+  } catch (err) {
+    console.error('Erreur chargement groupes:', err)
+  }
+}
+
+async function loadExams() {
+  try {
+    const response = await fetch('http://10.0.52.142/success/api.php/show_exam')
+    if (!response.ok) throw new Error('Erreur HTTP ' + response.status)
+
+    const data = await response.json()
+
+    rows.value = data.map(item => ({
+      nom: item.exam_name,
+      date: item.dateExam,
+      qcm: item.quizz_name,
+      groupe: item.group_name,
+      status: item.status,
+      reussite: `${item.avg_grade * 5}%`,
+      Code: item.idExam
+    }))
+  } catch (err) {
+    console.error('Impossible de charger les données depuis la VM :', err)
+  }
+}
+
+// Ajouter un exam via POST
+async function addEval() {
+  if (!newEval.value.nom || !newEval.value.groupe) return
+
+  const payload = {
+    name: newEval.value.nom,
+    time: newEval.value.time,
+    idQuizz: newEval.value.qcm,
+    idGroup: newEval.value.groupe,
+    code: newEval.value.Code,
+    status: newEval.value.status === 'En cours' ? 'Ouvert' : newEval.value.status,
+    scale: newEval.value.Barem,
+    hasMalus: newEval.value.Malus
+  }
+
+  try {
+    const res = await fetch('http://10.0.52.142/success/api.php/add_exam', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    })
+    const data = await res.json()
+    if (data.status === 'success') {
+      // Rafraîchir le tableau
+      await loadExams()
+      // Réinitialiser le formulaire
+      Object.keys(newEval.value).forEach(k => {
+        if (typeof newEval.value[k] === 'boolean') newEval.value[k] = false
+        else newEval.value[k] = k === 'time' ? 60 : ''
+      })
+      showDialog.value = false
+    } else {
+      console.error('Erreur ajout exam:', data)
+    }
+  } catch (err) {
+    console.error('Erreur API add_exam:', err)
   }
 }
 
@@ -132,28 +202,10 @@ function editRow(row) {
 }
 
 onMounted(async () => {
-  try {
-    const response = await fetch('http://10.0.52.142/success/api.php/show_exam')
-    if (!response.ok) throw new Error('Erreur HTTP ' + response.status)
-
-    const data = await response.json()
-
-    // 🧩 Adaptation selon la structure exacte de ton JSON
-    rows.value = data.map(item => ({
-      nom: item.exam_name,
-      date: item.dateExam,
-      qcm: item.quizz_name,
-      groupe: item.group_name,
-      status: item.status,
-      reussite: `${item.avg_grade * 5}%`, // Exemple : conversion note → pourcentage (optionnel)
-      Code: item.idExam
-    }))
-  } catch (err) {
-    console.error('Impossible de charger les données depuis la VM :', err)
-  }
+  await loadGroups()
+  await loadExams()
 })
 </script>
-
 
 <style scoped>
 .text-purple-12 {
