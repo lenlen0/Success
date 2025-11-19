@@ -5,7 +5,7 @@
       <h4
         class="text-purple-12 text-weight-bold"
         style="margin-bottom: 8px;"
-      >Éval</h4>
+      >Évals</h4>
 
       <!-- Bouton pour ouvrir le dialog -->
       <q-btn round color="purple-7" icon="add" style="margin: 8px" @click="showDialog = true" />

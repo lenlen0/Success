@@ -4,7 +4,7 @@
     <h4
       class="text-purple-12 text-weight-bold"
       style="margin-bottom: 8px;"
-    >Groupe</h4>
+    >Groupes</h4>
 
     <!-- Bouton pour ouvrir la popup -->
     <q-btn round color="purple-7" icon="add" @click="openPopup" />
