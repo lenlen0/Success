@@ -187,7 +187,7 @@ async function addGroup(nom_groupe) {
       },
       body: JSON.stringify({
         name: nom_groupe,
-        id_s11: 1
+        id_s11: 3
       })
     });
 
