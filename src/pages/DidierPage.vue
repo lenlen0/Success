@@ -94,7 +94,7 @@
           unelevated
           rounded
           color="purple-7"
-          label="Ajouter"
+          label="Modifier"
           @click="editUserFunc(editUser.Id, editUser.PWD, editUser.role, editUser.Prenom, editUser.Nom)"
         />
 
@@ -230,11 +230,72 @@ async function editUserFunc(id, pwd, role, prenom, nom) {
 }
 
 async function EditUserNoPasswordEdit(id, role, prenom, nom) {
+  try {
+    const response = await fetch("http://10.0.52.142/success/api.php/modify_user_with_no_password_change", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        id_s11: id,
+        role: role,
+        firstname: prenom,
+        lastname: nom
+      })
+    });
 
+    if (!response.ok) {
+      throw new Error("Erreur API " + response.status);
+    }
+
+    const data = await response.json();
+    console.log("Utilisateur modifié :", data);
+
+    if (data.status === "success") {
+      showEditDialog.value = false
+      await loadUsers()
+    }
+
+    return data;
+
+  } catch (err) {
+    console.error("Erreur", err);
+  }
 }
 
 async function EditUserWPasswordEdit(id, pwd, role, prenom, nom) {
+  try {
+    const response = await fetch("http://10.0.52.142/success/api.php/modify_user_with_password_change", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        id_s11: id,
+        pwd: pwd,
+        role: role,
+        firstname: prenom,
+        lastname: nom
+      })
+    });
 
+    if (!response.ok) {
+      throw new Error("Erreur API " + response.status);
+    }
+
+    const data = await response.json();
+    console.log("Utilisateur modifié :", data);
+
+    if (data.status === "success") {
+      showEditDialog.value = false
+      await loadUsers()
+    }
+
+    return data;
+
+  } catch (err) {
+    console.error("Erreur", err);
+  }
 }
 
 async function deleteRow(row) {
