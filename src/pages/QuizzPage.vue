@@ -37,13 +37,15 @@
 
           <template v-slot:body-cell-Action="props">
             <q-td :props="props" auto-width class="text-center">
-              <q-btn flat round dense color="purple-7" icon="delete" size="sm" @click="deleteQuizz(props.row)"/>
-              <q-btn flat round dense color="purple-7" icon="edit" size="sm" @click="openEditDialog(props.row)"/>
+              <q-btn flat color="purple-7" icon="delete_outline" align="center" @click="deleteRow(props.row)" />
+              <q-btn flat color="purple-7" icon="edit" align="center" @click="editRow(props.row)" />
             </q-td>
           </template>
         </q-table>
       </div>
     </div>
+
+
 
     <q-dialog v-model="showDialog" persistent>
       <q-card style="min-width: 400px;">
@@ -115,16 +117,26 @@ export default {
 
     async function addQuizz(name, isEnable) {
       try {
-        const response = await fetch("http://10.0.52.142/success/api.php/add_quizz", {
+        const endpoint = isEditing.value ? "http://10.0.52.142/success/api.php/edit_quizz" : "http://10.0.52.142/success/api.php/add_quizz"
+
+        const body = isEditing.value
+          ? {
+              idQuizz: editedQuizz.value.id,
+              name: name,
+              isEnable: isEnable
+            }
+          : {
+              name: name,
+              isEnable: isEnable,
+              id_s11: 3
+            }
+
+        const response = await fetch(endpoint, {
           method: "POST",
           headers: {
             "Content-Type": "application/json"
           },
-          body: JSON.stringify({
-            name: name,
-            isEnable: isEnable,
-            id_s11: 3
-          })
+          body: JSON.stringify(body)
         });
 
         if (!response.ok) {
@@ -132,10 +144,12 @@ export default {
         }
 
         const data = await response.json();
-        console.log("Quizz ajouté :", data);
+        console.log(isEditing.value ? "Quizz modifié :" : "Quizz ajouté :", data);
 
         if (data.status === "success") {
           showDialog.value = false
+          currentQuizz.value = { name: '', isEnable: false }
+          editedQuizz.value = null
           await loadQuizz()
         }
 
@@ -161,10 +175,15 @@ export default {
         const payload = Array.isArray(data) ? data : (Array.isArray(data.data) ? data.data : [])
 
         rows.value = payload.map(item => ({
-          id: item.id,
+          id: item.idQuizz || item.id || null,
           NOM: item.name,
-          Nombre_De_Questions: item.nb_questions || 0,
-          isEnableBoolean: Boolean(item.isEnable === true || item.isEnable === 'true' || item.isEnable === 1 || item.isEnable === '1')
+          Nombre_De_Questions: item.nb_questions || item.nb_question || 0,
+          isEnableBoolean: !!(
+            item.isEnable === true ||
+            item.isEnable === 1 ||
+            item.isEnable === '1' ||
+            item.isEnable === 'true'
+          )
         }))
       } catch (err) {
         console.error('Impossible de charger les questionnaires :', err)
@@ -176,42 +195,18 @@ export default {
       loadQuizz()
     });
 
-    function openAddDialog() {
-      editedQuizz.value = null
-      currentQuizz.value = { name: '', isEnableBoolean: true }
-      showDialog.value = true
-    }
-
-    function openEditDialog(row) {
-      editedQuizz.value = row
-      currentQuizz.value = {
-        name: row.NOM,
-        isEnableBoolean: row.isEnableBoolean
-      }
-      showDialog.value = true
-    }
-
-    function deleteQuizz(rowToDelete) {
-      const index = rows.value.indexOf(rowToDelete)
-      if (index > -1) rows.value.splice(index, 1)
-    }
-
-    function goToQuestionPage() {
-      console.log("Navigation vers les questions")
-    }
 
     async function toggleStatus(row) {
       try {
-        const response = await fetch("http://10.0.52.142/success/api.php/update_quizz", {
+        const response = await fetch("http://10.0.52.142/success/api.php/edit_quizz", {
           method: "POST",
           headers: {
             "Content-Type": "application/json"
           },
           body: JSON.stringify({
-            id: row.id,
+            idQuizz: row.id,
             name: row.NOM,
-            isEnable: !row.isEnableBoolean,
-            id_s11: 3
+            isEnable: !row.isEnableBoolean
           })
         });
 
@@ -229,6 +224,50 @@ export default {
       }
     }
 
+    async function deleteRow(row) {
+      try {
+        const response = await fetch('http://10.0.52.142/success/api.php/del_quizz', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({idQuizz: row.id})
+        });
+        if (!response.ok) throw new Error('Erreur HTTP ' + response.status);
+
+        const data = await response.json();
+
+        if (data.status === 'success') {
+          console.log('QUIZZ', row.id, 'supprimé avec succès');
+          await loadQuizz();
+        } else {
+          console.error('Erreur lors de la suppression:', data.message);
+        }
+      } catch (err) {
+        console.error('Impossible de supprimer le quizz :', err);
+      }
+    }
+
+    function editRow(row) {
+      editedQuizz.value = row
+      currentQuizz.value = {
+        name: row.NOM,
+        isEnable: row.isEnableBoolean
+      }
+      showDialog.value = true
+    }
+
+    function openAddDialog() {
+      editedQuizz.value = null
+      currentQuizz.value = { name: '', isEnable: false }
+      showDialog.value = true
+    }
+
+
+    function goToQuestionPage() {
+      window.location.href = '/#/question';
+    }
+
     return {
       columns,
       rows,
@@ -237,10 +276,10 @@ export default {
       isEditing,
       currentUserId,
       openAddDialog,
-      deleteQuizz,
-      openEditDialog,
-      goToQuestionPage,
+      deleteRow,
+      editRow,
       addQuizz,
+      goToQuestionPage,
       loadQuizz,
       toggleStatus
     }
