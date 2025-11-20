@@ -84,6 +84,30 @@ class Quizz extends ConnexionPDO {
         }
         return $resultat;
     }
+
+    public function editQuizz($idQuizz, $name, $isEnable) {
+        try {
+            $req = $this->conn->prepare("UPDATE Quizz SET name = :name, isEnable = :isEnable WHERE idQuizz = :idQuizz");
+            $req->bindValue(':idQuizz', $idQuizz, PDO::PARAM_INT);
+            $req->bindValue(':name', $name, PDO::PARAM_STR);
+            $req->bindValue(':isEnable', $isEnable, PDO::PARAM_INT);
+            $resultat = $req->execute();
+        } catch (PDOException $e) {
+            die($e->getMessage());
+        }
+        return $resultat;
+    }
+
+    public function deleteQuizzByID($idQuizz) {
+        try {
+            $req = $this->conn->prepare("DELETE FROM User WHERE idQuizz = :idQuizz");
+            $req->bindValue(':idQuizz', $idQuizz, PDO::PARAM_INT);
+            $resultat = $req->execute();
+        } catch (PDOException $e) {
+            die($e->getMessage());
+        }
+        return $resultat;
+    }
 }
 
 ?>
