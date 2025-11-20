@@ -1,184 +1,148 @@
 <template>
-  <div class="q-pa-md q-gutter-sm" style="background-color: #FFF4FF; min-height: 100vh;">
-    <!-- Titre -->
-    <h4
-      class="text-purple-12 text-weight-bold"
-      style="margin-bottom: 8px;"
-    >Groupes</h4>
+  <q-page class="bg-rose column items-center q-pa-lg" style="background-color: #FFF4FF;">
+    <div class="q-pa-md full-width">
+      <!-- Titre -->
+      <h4 class="text-purple-12 text-weight-bold" style="margin-bottom: 8px;">Groupes</h4>
 
-    <!-- Bouton pour ouvrir la popup -->
-    <q-btn round color="purple-7" icon="add" @click="openPopup" />
+      <!-- Bouton pour ouvrir le dialog -->
+      <q-btn round color="purple-7" icon="add" style="margin: 8px" @click="openAddDialog" />
+      <br /><br />
 
-    <!-- Popup modale pour ajout/modif groupe -->
-    <q-dialog v-model="popup">
-      <q-card style="width:400px;">
-        <q-card-section class="flex column justify-evenly items-center q-pa-none" id="formulaire-ajout-groupe">
-          <q-card-section class="bg-purple-1 text-purple-10 q-mb-sm" style="width:100%;">
-            <div class="text-h6">{{ isEditMode ? 'Modifier le groupe' : 'Nouveau groupe' }}</div>
-          </q-card-section>
-          <q-input
-            rounded
-            outlined
-            v-model="newGroup.name"
-            label="Nom du groupe"
-            class="q-mb-sm"
-            style="width: 90%;"
-          />
+      <!-- Tableau Quasar -->
+      <q-table
+        flat
+        bordered
+        color="primary"
+        card-class="bg-white"
+        table-header-class="bg-purple-1 text-purple-10"
+        :rows="rows"
+        :columns="columns"
+        row-key="Id"
+      >
+        <!-- Slot pour customiser la colonne "action" -->
+        <template v-slot:body-cell-action="props">
+          <q-btn flat color="purple-7" icon="edit" align="center" @click="editRow(props.row)" />
+          <q-btn flat color="purple-7" icon="delete_outline" align="center" @click="deleteRow(props.row)" />
+        </template>
+      </q-table>
+    </div>
+
+    <!-- Dialog pour ajouter un groupe -->
+    <q-dialog v-model="showDialog" persistent>
+      <q-card style="min-width: 400px;">
+        <q-card-section class="bg-purple-1 text-purple-10">
+          <div class="text-h6">Ajouter un groupe</div>
         </q-card-section>
+
+        <q-card-section>
+          <div class="row q-gutter-md">
+            <q-input v-model="newGroup.Name" rounded outlined label="Nom" class="col-11" />
+          </div>
+        </q-card-section>
+
         <q-card-actions align="right">
-          <q-btn rounded label="Fermer" color="purple-7" v-close-popup @click="closePopup" />
+          <q-btn unelevated rounded color="purple-7" label="Annuler" v-close-popup />
           <q-btn
-            rounded
-            v-if="!isEditMode"
-            label="Ajouter"
-            color="purple-7"
-            @click="addGroup(newGroup.name)"
-          />
-          <q-btn rounded
-            v-if="isEditMode"
-            label="Enregistrer"
-            color="purple-7"
-            @click="saveGroup"
-          />
+          unelevated
+          rounded
+          color="purple-7"
+          label="Ajouter"
+          @click="addGroup(newGroup.Name)"
+        />
+
         </q-card-actions>
       </q-card>
     </q-dialog>
 
-    <!-- Tableau des groupes -->
-    <div class="q-mt-md">
-      <q-table
-        flat
-        bordered
-        :rows="groupes"
-        :columns="tableColumns"
-        :loading="loading"
-        row-key="__rowKey"
-        color="purple-7"
-        card-class=""
-        table-class=""
-        table-header-class="bg-purple-1"
-      >
-        <template #body-cell-Nom="props">
-          <q-td :props="props">
-            {{ props.row.Nom || props.value || '-' }}
-          </q-td>
-        </template>
-        <template #body-cell-nbuser="props">
-          <q-td :props="props">
-            {{ props.row.nbuser || props.value || 0 }}
-          </q-td>
-        </template>
-        <template #body-cell-actions="props">
-          <q-td :props="props">
-            <q-btn
-              icon="edit"
-              color="purple-7"
-              dense
-              flat
-              round
-              size="sm"
-              class="q-mr-xs"
-              :title="'Modifier ce groupe'"
-              @click="editGroup(props.row)"
+    <!-- Dialog pour modifier un groupe -->
+    <q-dialog v-model="showEditDialog" persistent>
+      <q-card style="min-width: 400px;">
+        <q-card-section class="bg-purple-1 text-purple-10">
+          <div class="text-h6">Modifier un groupe</div>
+        </q-card-section>
+
+        <q-card-section>
+          <div class="row q-gutter-md">
+            <q-input 
+              v-model="editingGroup.Name" 
+              rounded 
+              outlined 
+              label="Nom" 
+              class="col-11" 
             />
-            <q-btn
-              icon="delete"
-              color="purple-7"
-              dense
-              flat
-              round
-              size="sm"
-              :title="'Supprimer ce groupe'"
-              @click="deleteGroup(props.row)"
-            />
-          </q-td>
-        </template>
-      </q-table>
-    </div>
-  </div>
+          </div>
+        </q-card-section>
+
+        <q-card-actions align="right">
+          <q-btn unelevated rounded color="purple-7" label="Annuler" v-close-popup />
+          <q-btn
+            unelevated
+            rounded
+            color="purple-7"
+            label="Modifier"
+            @click="editGroup(editingGroup.Id, editingGroup.Name)"
+          />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
+  </q-page>
 </template>
+
 <script setup>
 import { ref, onMounted } from 'vue'
 
-// État pour la popup et l'édition
-const popup = ref(false)
-const isEditMode = ref(false)
-const editNom = ref('')
-const editIndex = ref(-1)
-const loading = ref(false)
-
-// Données pour le tableau (chargées depuis l'API)
-const groupes = ref([])
-
-const newGroup = ref({
-  name: ''
+const showDialog = ref(false)
+const showEditDialog = ref(false)
+const rows = ref([])
+const editingGroup = ref({
+  Id: null,
+  Name: '',
+  nb_user: 0
 })
 
-// Fonction pour charger les groupes depuis l'API
-async function loadGroupes() {
-  loading.value = true
+// Colonnes du tableau
+const columns = [
+  { name: 'Nom', label: 'Nom', align: 'left', field: 'Nom' },
+  { name: 'nb_user', label: 'Nombre d\'utilisateurs', align: 'left', field: 'nb_user' },
+  {
+    name: 'action',
+    label: 'Actions',
+    align: 'center',
+    style: 'width: 120px; max-width: 120px;',
+    headerStyle: 'width: 120px; max-width: 120px;'
+  }
+]
+
+async function loadGroups() {
   try {
     const response = await fetch('http://10.0.52.142/success/api.php/show_group')
-    if (!response.ok) {
-      throw new Error(`Erreur HTTP: ${response.status}`)
-    }
+    if (!response.ok) throw new Error('Erreur HTTP ' + response.status)
+
     const data = await response.json()
 
-    // Transformer les données de l'API pour correspondre au format attendu
-    let groupesData = []
-
-    if (Array.isArray(data)) {
-      groupesData = data
-    } else if (data.groupes && Array.isArray(data.groupes)) {
-      groupesData = data.groupes
-    } else if (data.data && Array.isArray(data.data)) {
-      groupesData = data.data
-    } else {
-      groupes.value = []
-      loading.value = false
-      return
-    }
-
-    // Mapper les données selon la structure de la base de données
-    groupes.value = groupesData.map((item, index) => {
-      // Récupérer le nom du groupe
-      const nomGroupe = item.Nom || item.name || item.nom || item.libelle || ''
-
-      // Récupérer le nombre d'utilisateurs
-      const nbUsers = item.nbuser || item.nbUser || item.nb_users || item.nombreUtilisateurs || 0
-
-      return {
-        __rowKey: item.idGroupe || item.id || item.ID || index + 1,
-        Nom: nomGroupe,
-        nbuser: nbUsers
-      }
-    })
-  } catch {
-    // En cas d'erreur, on garde un tableau vide ou on affiche un message
-    groupes.value = []
-  } finally {
-    loading.value = false
+    // 🧩 Adapter les données à tes colonnes
+    rows.value = data.map(item => ({
+      Id: item.idGroup,
+      Nom: item.name,
+      nb_user: item.nb_user
+    }))
+  } catch (err) {
+    console.error('Impossible de charger les groupes :', err)
   }
 }
 
-// Fonction pour ouvrir la popup (mode ajout)
-function openPopup() {
-  isEditMode.value = false
-  editNom.value = ''
-  editIndex.value = -1
-  popup.value = true
+// Nouveau groupe
+const newGroup = ref({
+  Name: '',
+  id_s11: 3
+})
+
+function openAddDialog() {
+  newGroup.value.Name = ''
+  showDialog.value = true
 }
 
-// Fonction pour fermer la popup
-function closePopup() {
-  popup.value = false
-  isEditMode.value = false
-  editNom.value = ''
-  editIndex.value = -1
-}
-
-// Fonction pour ajouter un groupe
-async function addGroup(nom_groupe) {
+async function addGroup(name) {
   try {
     const response = await fetch("http://10.0.52.142/success/api.php/add_group", {
       method: "POST",
@@ -186,94 +150,85 @@ async function addGroup(nom_groupe) {
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        name: nom_groupe,
+        name: name,
         id_s11: 3
       })
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Erreur API ${response.status}: ${errorText}`);
+      throw new Error("Erreur API " + response.status);
     }
 
     const data = await response.json();
     console.log("Groupe ajouté :", data);
 
     if (data.status === "success") {
-      await closePopup()
-      await loadGroupes()
-    } else {
-      console.error("Erreur lors de l'ajout :", data.message || data);
+      showDialog.value = false
+      await loadGroups()
     }
 
     return data;
 
   } catch (err) {
-    console.error("Erreur lors de l'ajout du groupe :", err);
-    alert(`Erreur lors de l'ajout : ${err.message}`);
+    console.error("Erreur", err);
   }
 }
 
-// Fonction pour modifier un groupe
-function editGroup(group) {
-  isEditMode.value = true
-  editNom.value = group.Nom || ''
-  editIndex.value = groupes.value.findIndex(g => g.__rowKey === group.__rowKey)
-  popup.value = true
-}
+async function editGroup(id, name) {
+  try {
+    const response = await fetch("http://10.0.52.142/success/api.php/edit_group", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        idGroup: id,
+        name: name
+      })
+    });
 
-// Fonction pour enregistrer les modifications
-function saveGroup() {
-  if (editNom.value.trim() && editIndex.value >= 0) {
-    groupes.value[editIndex.value].Nom = editNom.value.trim()
-    closePopup()
+    if (!response.ok) {
+      throw new Error("Erreur API " + response.status);
+    }
+
+    const data = await response.json();
+
+    if (data.status === "success") {
+      showEditDialog.value = false
+      await loadGroups()
+    }
+
+    return data;
+
+  } catch (err) {
+    console.error("Erreur", err);
   }
 }
 
-// Fonction pour supprimer un groupe
-function deleteGroup(group) {
-  const index = groupes.value.findIndex(g => g.__rowKey === group.__rowKey)
-  if (index >= 0) {
-    groupes.value.splice(index, 1)
+
+
+function editRow(row) {
+  editingGroup.value = {
+    Id: row.Id,
+    Name: row.Nom,
+    nb_user: row.nb_user
   }
+  showEditDialog.value = true
 }
 
-// Charger les groupes au montage du composant
-onMounted(() => {
-  loadGroupes()
-})
+function deleteRow(row) {
+  rows.value = rows.value.filter(r => r.Id !== row.Id)
+}
 
-// Colonnes du q-table
-const tableColumns = [
-  {
-    name: 'Nom',
-    required: true,
-    label: 'Nom du groupe',
-    align: 'left',
-    field: row => row.Nom,
-    sortable: false
-  },
-  {
-    name: 'nbuser',
-    required: true,
-    label: 'Nombre d\'utilisateurs',
-    align: 'left',
-    field: row => row.nbuser,
-    sortable: false
-  },
-  {
-    name: 'actions',
-    required: true,
-    label: 'Actions',
-    align: 'left',
-    field: () => null,
-    sortable: false
-  }
-]
+// Chargement depuis ton API
+onMounted(loadGroups)
 </script>
 
 <style scoped>
 .text-purple-12 {
   color: var(--q-color-purple-12);
+}
+.bg-rose {
+  background-color: #FFF4FF;
 }
 </style>
