@@ -3,7 +3,7 @@
     <div class="q-pa-md full-width">
       <h4 class="text-purple-12 text-weight-bold" style="margin-bottom: 8px;">Évals</h4>
 
-      <q-btn round color="purple-7" icon="add" style="margin: 8px" @click="showDialog = true" />
+      <q-btn round color="purple-7" icon="add" style="margin: 8px" @click="openDialogAndGenerateCode" />
       <br/><br/>
 
       <q-table
@@ -47,7 +47,25 @@
               class="col-11"
             />
 
-            <q-input rounded outlined v-model="newEval.Code" label="Code" class="col-11" />
+            <q-input 
+              rounded 
+              outlined 
+              v-model="newEval.Code" 
+              label="Code" 
+              class="col-11" 
+              readonly
+            >
+                <template v-slot:append>
+                    <q-btn 
+                        icon="refresh" 
+                        round 
+                        flat 
+                        dense 
+                        @click="generateAndSetCode" 
+                        color="purple-7" 
+                    />
+                </template>
+            </q-input>
 
             <q-select
               rounded outlined
@@ -104,7 +122,7 @@ const newEval = ref({
   time: 60,
   qcm: null, 
   groupe: null, 
-  Code: '', 
+  Code: '', // Sera défini par generateCode
   status: 'En cours',
   Barem: false,
   Malus: false
@@ -113,6 +131,30 @@ const newEval = ref({
 // Options chargées par API
 const groupOptions = ref([])
 const quizzOptions = ref([])
+
+
+// 🎯 LOGIQUE DE GÉNÉRATION DE CODE
+function generateCode() {
+    const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let result = '';
+    for (let i = 0; i < 6; i++) {
+        const randomIndex = Math.floor(Math.random() * characters.length);
+        result += characters.charAt(randomIndex);
+    }
+    return result;
+}
+
+function generateAndSetCode() {
+    newEval.value.Code = generateCode();
+}
+
+function openDialogAndGenerateCode() {
+    resetForm();
+    generateAndSetCode();
+    showDialog.value = true;
+}
+// FIN LOGIQUE DE GÉNÉRATION DE CODE
+
 
 function resetForm() {
   newEval.value = {
@@ -146,7 +188,7 @@ async function loadExams() {
     const res = await fetch('http://10.0.52.142/success/api.php/show_exam')
     const data = await res.json()
 
-    // 🎯 MAPPING: Remplace 'Ouvert' par 'En cours' pour l'affichage seulement.
+    // MAPPING: Remplace 'Ouvert' par 'En cours' pour l'affichage seulement.
     const mapStatusForDisplay = (status) => {
         return status === 'Ouvert' ? 'En cours' : status;
     };
@@ -158,7 +200,6 @@ async function loadExams() {
       groupe: item.group_name,
       status: mapStatusForDisplay(item.status), 
       reussite: `${item.avg_grade !== null ? (item.avg_grade * 5).toFixed(0) : 0}%`,
-      // ✅ CORRECTION: Affiche le VRAI CODE d'accès (item.code)
       Code: item.code 
     }))
   } catch (err) {
@@ -174,9 +215,9 @@ async function addEval() {
   if (!newEval.value.groupe) return alert('Veuillez sélectionner un groupe')
   
   const codeValue = newEval.value.Code ? newEval.value.Code.trim() : '';
-  if (!codeValue) return alert('Le code d\'accès est requis.');
+  if (!codeValue || codeValue.length !== 6) return alert('Le code d\'accès doit être généré et avoir 6 caractères.');
 
-  // 🎯 MAPPING: Remplace 'En cours' par 'Ouvert' pour l'envoi à l'API.
+  // MAPPING: Remplace 'En cours' par 'Ouvert' pour l'envoi à l'API.
   const statusApi = newEval.value.status === 'En cours' ? 'Ouvert' : newEval.value.status;
   
   const payload = {
@@ -184,7 +225,7 @@ async function addEval() {
     time: parseInt(newEval.value.time) || 60,
     idQuizz: newEval.value.qcm.value,
     idGroup: newEval.value.groupe.value,
-    code: codeValue, 
+    code: String(codeValue), 
     status: statusApi, 
     scale: newEval.value.Barem ? 1 : 0,
     hasMalus: newEval.value.Malus ? 1 : 0
@@ -236,7 +277,6 @@ function editRow(row) {
 
 function deleteRow(row) {
   alert("La suppression est locale. L'API doit être implémentée.");
-  // Simulation de suppression locale :
   rows.value = rows.value.filter(r => r.Code !== row.Code)
 }
 
