@@ -45,6 +45,49 @@
       </div>
     </div>
 
+    <q-dialog v-model="openAddDialog" persistent>
+      <q-card style="min-width: 400px;">
+        <q-card-section class="bg-purple-1 text-purple-10">
+        </q-card-section>
+
+        <q-card-section class="q-pt-none q-pb-sm">
+          <div class="row items-center q-gutter-md q-mt-md">
+            <q-btn round color="purple-7" icon="assignment" aria-label="Questions" @click="goToQuestionPage"/>
+            <span class="text-body2">Gérer les questions</span>
+          </div>
+        </q-card-section>
+
+        <q-card-section class="q-pt-sm">
+          <div class="column q-gutter-md">
+            <q-input
+              v-model="currentQuizz.name"
+              rounded
+              outlined
+              label="Nom du Quiz"
+            />
+
+            <q-toggle
+              v-model="currentQuizz.isEnable"
+              label="Activer le questionnaire (Visible)"
+              color="purple-7"
+            />
+          </div>
+
+        </q-card-section>
+
+        <q-card-actions align="right">
+          <q-btn unelevated rounded color="purple-7" label="Annuler" v-close-popup />
+          <q-btn
+            unelevated
+            rounded
+            color="purple-7"
+            :label="isEditing ? 'Modifier' : 'Ajouter'"
+            @click="addQuizz(currentQuizz.name, currentQuizz.isEnable)"
+          />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
+
     <q-dialog v-model="showDialog" persistent>
       <q-card style="min-width: 400px;">
         <q-card-section class="bg-purple-1 text-purple-10">
@@ -292,6 +335,9 @@ export default {
       }
       showDialog.value = true
     }
+    function goToQuestionPage() {
+      window.location.href = '/#/question';
+    }
 
     return {
       columns,
@@ -304,6 +350,7 @@ export default {
       deleteRow,
       openEditDialog,
       addQuizz,
+      goToQuestionPage,
       loadQuizz,
       editRow,
       editQuizz,
