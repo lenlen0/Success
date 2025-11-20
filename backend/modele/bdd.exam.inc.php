@@ -30,15 +30,21 @@ class Exam extends ConnexionPDO {
         $resultat = array();
         try {
             $req = $this->conn->prepare("SELECT e.idExam, e.name AS exam_name, e.dateExam, e.status, e.code, QU.name AS quizz_name, g.name AS group_name, ROUND(AVG(te.grade), 2) AS avg_grade
-            FROM Exam e
-            INNER JOIN Quizz QU ON e.idQuizz = QU.idQuizz
-            INNER JOIN `Group` g ON e.idGroup = g.idGroup
-            INNER JOIN TakeExam te ON e.idExam = te.idExam
-            GROUP BY e.idExam, e.name, e.dateExam, e.status, e.code, QU.name, g.name
-            ORDER BY e.dateExam DESC;");
+                FROM Exam e INNER JOIN Quizz QU ON e.idQuizz = QU.idQuizz INNER JOIN `Group` g ON e.idGroup = g.idGroup
+                LEFT JOIN TakeExam te ON e.idExam = te.idExam
+                GROUP BY e.idExam, e.name, e.dateExam, e.status, e.code, QU.name, g.name
+                ORDER BY e.idExam");
             $req->execute();
 
             $resultat = $req->fetchAll(PDO::FETCH_ASSOC);
+
+            foreach ($resultat as &$row) {
+                if ($row['avg_grade'] === null) {
+                    $row['avg_grade'] = 0;
+                }
+            }
+            unset($row);
+
         } catch (PDOException $e) {
             die($e->getMessage());
         }
