@@ -151,6 +151,60 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             echo json_encode(["status" => "success"], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
             exit;
 
+        case 'modify_user_with_no_password_change':
+            if (empty($data['id_s11']) || empty($data['role']) || empty($data['firstname']) || empty($data['lastname'])) {
+                http_response_code(422);
+                echo json_encode(["status" => "error", "message" => "Champs 'id_s11', 'role', 'firstname' et 'lastname' requis."]);
+                exit;
+            }
+
+            $ModifyUserNoPasswordChange = $User->modifyUserWithNoPasswordChange($data['id_s11'], $data['role'], $data['firstname'], $data['lastname']);
+
+            if (!$ModifyUserNoPasswordChange) {
+                http_response_code(500);
+                echo json_encode(["status" => "error"]);
+                exit;
+            }
+
+            echo json_encode(["status" => "success"], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+            exit;
+
+        case 'modify_user_with_password_change':
+            if (empty($data['id_s11']) || empty($data['pwd']) || empty($data['role']) || empty($data['firstname']) || empty($data['lastname'])) {
+                http_response_code(422);
+                echo json_encode(["status" => "error", "message" => "Champs 'id_s11', 'pwd', 'role', 'firstname' et 'lastname' requis."]);
+                exit;
+            }
+
+            $ModifyUserPasswordChange = $User->modifyUserWithPasswordChange($data['id_s11'], $data['pwd'], $data['role'], $data['firstname'], $data['lastname']);
+
+            if (!$ModifyUserPasswordChange) {
+                http_response_code(500);
+                echo json_encode(["status" => "error"]);
+                exit;
+            }
+
+            echo json_encode(["status" => "success"], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+            exit;
+
+        case 'del_user':
+            if (empty($data['id_s11'])) {
+                http_response_code(422);
+                echo json_encode(["status" => "error", "message" => "Champs 'id_s11' requis pour la supression."]);
+                exit;
+            }
+
+            $delUser = $User->deleteUserByID($data['id_s11']);
+
+            if (!$delUser) {
+                http_response_code(500);
+                echo json_encode(["status" => "error"]);
+                exit;
+            }
+
+            echo json_encode(["status" => "success"], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+            exit;
+
         default:
             http_response_code(404);
             echo json_encode(["error" => "Ressource '$resource' introuvable"]);
@@ -191,7 +245,7 @@ $tab_resource = [
     ],
     'show_user' => [
         'model' => $User,
-        'requeteByID' => '',
+        'requeteByID' => 'getUserByID',
         'requete' => 'getAllUser'
     ]
 ];
