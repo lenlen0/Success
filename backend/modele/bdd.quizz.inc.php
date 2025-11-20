@@ -57,7 +57,7 @@ class Quizz extends ConnexionPDO {
         try {
             $this->conn->exec("SET sql_mode=(SELECT REPLACE(@@sql_mode, 'ONLY_FULL_GROUP_BY', ''))");
 
-            $req = $this->conn->prepare("SELECT QU.idQuizz, QU.name, COALESCE(COUNT(Q.idQuestion), 0) AS nb_question
+            $req = $this->conn->prepare("SELECT QU.idQuizz, QU.name, QU.isEnable, COALESCE(COUNT(Q.idQuestion), 0) AS nb_question
             FROM Quizz QU
             LEFT JOIN Question Q ON Q.idQuizz = QU.idQuizz
             GROUP BY QU.idQuizz, QU.name, QU.isEnable
