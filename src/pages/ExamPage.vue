@@ -20,11 +20,16 @@
           <q-btn flat color="purple-7" icon="edit" @click="editRow(props.row)" />
           <q-btn flat color="purple-7" icon="delete_outline" @click="deleteRow(props.row)" />
         </template>
+        <template v-slot:body-cell-reussite="props">
+          <q-td :props="props">
+            {{ props.row.reussite || '0%' }}
+          </q-td>
+        </template>
       </q-table>
     </div>
 
     <q-dialog v-model="showDialog" persistent>
-      <q-card style="min-width: 400px;">
+      <q-card style="min-width: 450px;">
         <q-card-section class="bg-purple-1 text-purple-10">
           <div class="text-h6">Nouvelle évaluation</div>
         </q-card-section>
@@ -35,8 +40,7 @@
             <q-input rounded outlined v-model.number="newEval.time" label="Time (min)" type="number" class="col-11" />
 
             <q-select
-              rounded
-              standout="bg-grey-1"
+              rounded outlined
               v-model="newEval.qcm"
               :options="quizzOptions"
               label="QCM"
@@ -46,8 +50,7 @@
             <q-input rounded outlined v-model="newEval.Code" label="Code" class="col-11" />
 
             <q-select
-              rounded
-              standout="bg-grey-1"
+              rounded outlined
               v-model="newEval.groupe"
               :options="groupOptions"
               label="Groupe"
@@ -55,8 +58,7 @@
             />
 
             <q-select
-              rounded
-              standout="bg-grey-1"
+              rounded outlined
               v-model="newEval.status"
               :options="['En cours', 'Fermer', 'Entrainement']"
               label="Status"
@@ -71,7 +73,7 @@
         </q-card-section>
 
         <q-card-actions align="right">
-          <q-btn unelevated rounded color="purple-7" label="Annuler" v-close-popup />
+          <q-btn unelevated rounded color="purple-7" label="Annuler" v-close-popup @click="resetForm" />
           <q-btn unelevated rounded color="purple-7" label="Ajouter" @click="addEval" />
         </q-card-actions>
       </q-card>
@@ -100,9 +102,9 @@ const columns = [
 const newEval = ref({
   nom: '',
   time: 60,
-  qcm: null,
-  groupe: null,
-  Code: '',
+  qcm: null, 
+  groupe: null, 
+  Code: '', 
   status: 'En cours',
   Barem: false,
   Malus: false
@@ -112,70 +114,78 @@ const newEval = ref({
 const groupOptions = ref([])
 const quizzOptions = ref([])
 
-// Charger les groupes
+function resetForm() {
+  newEval.value = {
+    nom: '', time: 60, qcm: null, groupe: null, Code: '',
+    status: 'En cours', Barem: false, Malus: false
+  }
+}
+
 async function loadGroups() {
   try {
     const res = await fetch('http://10.0.52.142/success/api.php/show_group')
     const data = await res.json()
-
-    groupOptions.value = data.map(g => ({
-      label: g.name,
-      value: g.idGroup
-    }))
+    groupOptions.value = data.map(g => ({ label: g.name, value: g.idGroup }))
   } catch (err) {
     console.error('Erreur chargement groupes:', err)
   }
 }
 
-// Charger les QCM — correction importante
 async function loadQcm() {
   try {
     const res = await fetch('http://10.0.52.142/success/api.php/show_quizz')
     const data = await res.json()
-
-    quizzOptions.value = data.map(q => ({
-      label: q.name,
-      value: q.idQuizz   // CHAMP CORRECT
-    }))
+    quizzOptions.value = data.map(q => ({ label: q.name, value: q.idQuizz }))
   } catch (err) {
     console.error('Erreur chargement quizz:', err)
   }
 }
 
-// Charger les examens
 async function loadExams() {
   try {
     const res = await fetch('http://10.0.52.142/success/api.php/show_exam')
     const data = await res.json()
 
+    // 🎯 MAPPING: Remplace 'Ouvert' par 'En cours' pour l'affichage seulement.
+    const mapStatusForDisplay = (status) => {
+        return status === 'Ouvert' ? 'En cours' : status;
+    };
+    
     rows.value = data.map(item => ({
       nom: item.exam_name,
       date: item.dateExam,
       qcm: item.quizz_name,
       groupe: item.group_name,
-      status: item.status,
-      reussite: `${item.avg_grade * 5 || 0}%`,
-      Code: item.idExam
+      status: mapStatusForDisplay(item.status), 
+      reussite: `${item.avg_grade !== null ? (item.avg_grade * 5).toFixed(0) : 0}%`,
+      // ✅ CORRECTION: Affiche le VRAI CODE d'accès (item.code)
+      Code: item.code 
     }))
   } catch (err) {
     console.error('Erreur chargement exams:', err)
+    rows.value = []
   }
 }
 
-// Ajouter un examen
 async function addEval() {
+  // 1. Validation côté client
   if (!newEval.value.nom.trim()) return alert('Le nom est requis')
   if (!newEval.value.qcm) return alert('Veuillez sélectionner un QCM')
   if (!newEval.value.groupe) return alert('Veuillez sélectionner un groupe')
-  if (!newEval.value.Code.trim()) return alert('Le code est requis')
+  
+  const codeValue = newEval.value.Code ? newEval.value.Code.trim() : '';
+  if (!codeValue) return alert('Le code d\'accès est requis.');
 
+  // 🎯 MAPPING: Remplace 'En cours' par 'Ouvert' pour l'envoi à l'API.
+  const statusApi = newEval.value.status === 'En cours' ? 'Ouvert' : newEval.value.status;
+  
   const payload = {
     name: newEval.value.nom.trim(),
     time: parseInt(newEval.value.time) || 60,
-    idQuizz: newEval.value.qcm.value,     // QCM CORRECT
+    idQuizz: newEval.value.qcm.value,
     idGroup: newEval.value.groupe.value,
-    code: newEval.value.Code.trim(),
-    status: newEval.value.status === 'En cours' ? 'Ouvert' : newEval.value.status,
+    code: codeValue, 
+    status: statusApi, 
     scale: newEval.value.Barem ? 1 : 0,
     hasMalus: newEval.value.Malus ? 1 : 0
   }
@@ -187,49 +197,53 @@ async function addEval() {
       body: JSON.stringify(payload)
     })
 
-    if (!res.ok) {
-      const text = await res.text()
-      throw new Error(`Erreur API ${res.status} : ${text}`)
+    const responseText = await res.text();
+    let responseData;
+    let errorMessage = '';
+
+    try {
+      responseData = JSON.parse(responseText);
+    } catch { 
+      errorMessage = `Erreur API (JSON invalide). Réponse serveur brute : ${responseText.substring(0, 150)}...`;
+      
+      const sqlErrorMatch = responseText.match(/Duplicate entry '([^']+)'/);
+      if (sqlErrorMatch) {
+          errorMessage = `Erreur de la base de données : Le code d'accès '${sqlErrorMatch[1]}' est déjà utilisé. Veuillez choisir un autre code.`;
+      }
+      throw new Error(errorMessage);
     }
 
-    const data = await res.json()
-
-    if (data.status === 'success') {
+    if (!res.ok) {
+        throw new Error(`Erreur API ${res.status}: ${responseData.message || 'Détails inconnus.'}`)
+    }
+    
+    if (responseData.status === 'success') {
       await loadExams()
-
-      // Reset du formulaire
-      newEval.value = {
-        nom: '',
-        time: 60,
-        qcm: null,
-        groupe: null,
-        Code: '',
-        status: 'En cours',
-        Barem: false,
-        Malus: false
-      }
-
-      showDialog.value = false
+      resetForm()
+      showDialog.value = false 
     } else {
-      alert(`Erreur : ${data.message || 'inconnue'}`)
+      alert(`Erreur : ${responseData.message || 'inconnue'}`)
     }
   } catch (err) {
-    alert(`Erreur : ${err.message}`)
+    alert(`Échec de l'ajout : ${err.message}`)
   }
 }
 
 function editRow(row) {
+  alert("La modification n'est pas implémentée pour l'instant.");
   console.log('Modifier :', row)
 }
 
 function deleteRow(row) {
+  alert("La suppression est locale. L'API doit être implémentée.");
+  // Simulation de suppression locale :
   rows.value = rows.value.filter(r => r.Code !== row.Code)
 }
 
 // Chargements initiaux
 onMounted(async () => {
   await loadGroups()
-  await loadQcm()    // ORDRE IMPORTANT
+  await loadQcm()
   await loadExams()
 })
 </script>
