@@ -176,20 +176,6 @@ export default {
       loadQuizz()
     });
 
-    function openAddDialog() {
-      editedQuizz.value = null
-      currentQuizz.value = { name: '', isEnableBoolean: true }
-      showDialog.value = true
-    }
-
-    function openEditDialog(row) {
-      editedQuizz.value = row
-      currentQuizz.value = {
-        name: row.NOM,
-        isEnableBoolean: row.isEnableBoolean
-      }
-      showDialog.value = true
-    }
 
     async function toggleStatus(row) {
       try {
@@ -245,17 +231,15 @@ export default {
     }
 
     function editRow(row) {
-      EditQuizz.value = {
-        Id: row.Id,
-        Nom: row.Nom,
-        Prenom: row.Prenom,
-        PWD: row.PWD,
-        role: row.role
+      editQuizz.value = {
+        idQuizz: row.Id,
+        name: row.Nom,
+        isEnable: row.isEnable
       }
       openEditDialog.value = true
     }
 
-    async function EditQuizz(idQuizz, nom, isEnable) {
+    async function EditQuizz2(idQuizz, nom, isEnable) {
       try {
         const response = await fetch("http://10.0.52.142/success/api.php/edit_quizz", {
           method: "POST",
@@ -266,7 +250,6 @@ export default {
             idQuizz: idQuizz,
             name: nom,
             isEnable: isEnable
-
           })
         });
 
@@ -289,8 +272,26 @@ export default {
       }
     }
 
+    const editQuizz = ref({
+      idQuizz: null,
+      name: '',
+      isEnable: false
+    })
 
+    function openAddDialog() {
+      editedQuizz.value = null
+      currentQuizz.value = { name: '', isEnableBoolean: true }
+      showDialog.value = true
+    }
 
+    function openEditDialog(row) {
+      editedQuizz.value = row
+      currentQuizz.value = {
+        name: row.NOM,
+        isEnableBoolean: row.isEnableBoolean
+      }
+      showDialog.value = true
+    }
 
     return {
       columns,
@@ -305,7 +306,8 @@ export default {
       addQuizz,
       loadQuizz,
       editRow,
-      EditQuizz,
+      editQuizz,
+      EditQuizz2,
       toggleStatus
     }
   }
