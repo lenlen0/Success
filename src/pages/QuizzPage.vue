@@ -263,7 +263,7 @@ export default {
             "Content-Type": "application/json"
           },
           body: JSON.stringify({
-            idQuizz: id,
+            idQuizz: idQuizz,
             name: nom,
             isEnable: isEnable
 
