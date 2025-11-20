@@ -96,6 +96,7 @@ const columns = [
   { name: 'action', label: 'Action', align: 'center', style: 'width:120px', headerStyle: 'width:120px' }
 ]
 
+// Formulaire ajout d'exam
 const newEval = ref({
   nom: '',
   time: 60,
@@ -107,28 +108,50 @@ const newEval = ref({
   Malus: false
 })
 
-
-// Options des groupes (chargées depuis l'API)
+// Options chargées par API
 const groupOptions = ref([])
+const quizzOptions = ref([])
 
+// Charger les groupes
 async function loadGroups() {
   try {
     const res = await fetch('http://10.0.52.142/success/api.php/show_group')
     const data = await res.json()
-    groupOptions.value = data.map(g => ({ label: g.name, value: g.idGroup }))
+
+    groupOptions.value = data.map(g => ({
+      label: g.name,
+      value: g.idGroup
+    }))
   } catch (err) {
     console.error('Erreur chargement groupes:', err)
   }
 }
 
+// Charger les QCM — correction importante
+async function loadQcm() {
+  try {
+    const res = await fetch('http://10.0.52.142/success/api.php/show_quizz')
+    const data = await res.json()
+
+    quizzOptions.value = data.map(q => ({
+      label: q.name,
+      value: q.idQuizz   // CHAMP CORRECT
+    }))
+  } catch (err) {
+    console.error('Erreur chargement quizz:', err)
+  }
+}
+
+// Charger les examens
 async function loadExams() {
   try {
     const res = await fetch('http://10.0.52.142/success/api.php/show_exam')
     const data = await res.json()
+
     rows.value = data.map(item => ({
       nom: item.exam_name,
       date: item.dateExam,
-      qcm: item.quizz_name || 'QCM Inventé',
+      qcm: item.quizz_name,
       groupe: item.group_name,
       status: item.status,
       reussite: `${item.avg_grade * 5 || 0}%`,
@@ -139,42 +162,23 @@ async function loadExams() {
   }
 }
 
+// Ajouter un examen
 async function addEval() {
-  console.log('Début addEval', newEval.value)
-  
-  // Validation renforcée
-  if (!newEval.value.nom || !newEval.value.nom.trim()) {
-    alert('Le nom est requis')
-    return
-  }
-  
-  if (!newEval.value.qcm) {
-    alert('Veuillez sélectionner un QCM')
-    return
-  }
-  
-  if (!newEval.value.groupe) {
-    alert('Veuillez sélectionner un groupe')
-    return
-  }
-  
-  if (!newEval.value.Code || !newEval.value.Code.trim()) {
-    alert('Le code est requis')
-    return
-  }
+  if (!newEval.value.nom.trim()) return alert('Le nom est requis')
+  if (!newEval.value.qcm) return alert('Veuillez sélectionner un QCM')
+  if (!newEval.value.groupe) return alert('Veuillez sélectionner un groupe')
+  if (!newEval.value.Code.trim()) return alert('Le code est requis')
 
   const payload = {
     name: newEval.value.nom.trim(),
     time: parseInt(newEval.value.time) || 60,
-    idQuizz: newEval.value.qcm.value,
+    idQuizz: newEval.value.qcm.value,     // QCM CORRECT
     idGroup: newEval.value.groupe.value,
     code: newEval.value.Code.trim(),
     status: newEval.value.status === 'En cours' ? 'Ouvert' : newEval.value.status,
     scale: newEval.value.Barem ? 1 : 0,
     hasMalus: newEval.value.Malus ? 1 : 0
   }
-
-  console.log('Payload envoyé:', payload)
 
   try {
     const res = await fetch('http://10.0.52.142/success/api.php/add_exam', {
@@ -183,19 +187,17 @@ async function addEval() {
       body: JSON.stringify(payload)
     })
 
-    console.log('Status réponse:', res.status)
-
     if (!res.ok) {
-      const errorText = await res.text()
-      throw new Error(`Erreur API ${res.status}: ${errorText}`)
+      const text = await res.text()
+      throw new Error(`Erreur API ${res.status} : ${text}`)
     }
 
     const data = await res.json()
-    console.log('Réponse API:', data)
 
     if (data.status === 'success') {
       await loadExams()
-      // Réinitialiser le formulaire
+
+      // Reset du formulaire
       newEval.value = {
         nom: '',
         time: 60,
@@ -206,25 +208,32 @@ async function addEval() {
         Barem: false,
         Malus: false
       }
+
       showDialog.value = false
     } else {
-      console.error('Erreur ajout exam:', data.message || data)
-      alert(`Erreur lors de l'ajout : ${data.message || 'Erreur inconnue'}`)
+      alert(`Erreur : ${data.message || 'inconnue'}`)
     }
   } catch (err) {
-    console.error('Erreur API add_exam:', err)
-    alert(`Erreur lors de l'ajout : ${err.message}`)
+    alert(`Erreur : ${err.message}`)
   }
 }
 
-function editRow(row) { console.log('Modifier :', row) }
-function deleteRow(row) { rows.value = rows.value.filter(r => r.Code !== row.Code) }
+function editRow(row) {
+  console.log('Modifier :', row)
+}
 
+function deleteRow(row) {
+  rows.value = rows.value.filter(r => r.Code !== row.Code)
+}
+
+// Chargements initiaux
 onMounted(async () => {
   await loadGroups()
+  await loadQcm()    // ORDRE IMPORTANT
   await loadExams()
 })
 </script>
+
 
 <style scoped>
 .text-purple-12 { color: var(--q-color-purple-12); }
