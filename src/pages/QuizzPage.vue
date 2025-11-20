@@ -45,48 +45,7 @@
       </div>
     </div>
 
-    <q-dialog v-model="openAddDialog" persistent>
-      <q-card style="min-width: 400px;">
-        <q-card-section class="bg-purple-1 text-purple-10">
-        </q-card-section>
 
-        <q-card-section class="q-pt-none q-pb-sm">
-          <div class="row items-center q-gutter-md q-mt-md">
-            <q-btn round color="purple-7" icon="assignment" aria-label="Questions" @click="goToQuestionPage"/>
-            <span class="text-body2">Gérer les questions</span>
-          </div>
-        </q-card-section>
-
-        <q-card-section class="q-pt-sm">
-          <div class="column q-gutter-md">
-            <q-input
-              v-model="currentQuizz.name"
-              rounded
-              outlined
-              label="Nom du Quiz"
-            />
-
-            <q-toggle
-              v-model="currentQuizz.isEnable"
-              label="Activer le questionnaire (Visible)"
-              color="purple-7"
-            />
-          </div>
-
-        </q-card-section>
-
-        <q-card-actions align="right">
-          <q-btn unelevated rounded color="purple-7" label="Annuler" v-close-popup />
-          <q-btn
-            unelevated
-            rounded
-            color="purple-7"
-            :label="isEditing ? 'Modifier' : 'Ajouter'"
-            @click="addQuizz(currentQuizz.name, currentQuizz.isEnable)"
-          />
-        </q-card-actions>
-      </q-card>
-    </q-dialog>
 
     <q-dialog v-model="showDialog" persistent>
       <q-card style="min-width: 400px;">
@@ -158,16 +117,26 @@ export default {
 
     async function addQuizz(name, isEnable) {
       try {
-        const response = await fetch("http://10.0.52.142/success/api.php/add_quizz", {
+        const endpoint = isEditing.value ? "http://10.0.52.142/success/api.php/edit_quizz" : "http://10.0.52.142/success/api.php/add_quizz"
+
+        const body = isEditing.value
+          ? {
+              idQuizz: editedQuizz.value.id,
+              name: name,
+              isEnable: isEnable
+            }
+          : {
+              name: name,
+              isEnable: isEnable,
+              id_s11: 3
+            }
+
+        const response = await fetch(endpoint, {
           method: "POST",
           headers: {
             "Content-Type": "application/json"
           },
-          body: JSON.stringify({
-            name: name,
-            isEnable: isEnable,
-            id_s11: 3
-          })
+          body: JSON.stringify(body)
         });
 
         if (!response.ok) {
@@ -175,10 +144,12 @@ export default {
         }
 
         const data = await response.json();
-        console.log("Quizz ajouté :", data);
+        console.log(isEditing.value ? "Quizz modifié :" : "Quizz ajouté :", data);
 
         if (data.status === "success") {
           showDialog.value = false
+          currentQuizz.value = { name: '', isEnable: false }
+          editedQuizz.value = null
           await loadQuizz()
         }
 
@@ -204,10 +175,15 @@ export default {
         const payload = Array.isArray(data) ? data : (Array.isArray(data.data) ? data.data : [])
 
         rows.value = payload.map(item => ({
-          id: item.id,
+          id: item.idQuizz || item.id || null,
           NOM: item.name,
-          Nombre_De_Questions: item.nb_questions || 0,
-          isEnableBoolean: Boolean(item.isEnable === true || item.isEnable === 'true' || item.isEnable === 1 || item.isEnable === '1')
+          Nombre_De_Questions: item.nb_questions || item.nb_question || 0,
+          isEnableBoolean: !!(
+            item.isEnable === true ||
+            item.isEnable === 1 ||
+            item.isEnable === '1' ||
+            item.isEnable === 'true'
+          )
         }))
       } catch (err) {
         console.error('Impossible de charger les questionnaires :', err)
@@ -222,16 +198,15 @@ export default {
 
     async function toggleStatus(row) {
       try {
-        const response = await fetch("http://10.0.52.142/success/api.php/update_quizz", {
+        const response = await fetch("http://10.0.52.142/success/api.php/edit_quizz", {
           method: "POST",
           headers: {
             "Content-Type": "application/json"
           },
           body: JSON.stringify({
-            id: row.id,
+            idQuizz: row.id,
             name: row.NOM,
-            isEnable: !row.isEnableBoolean,
-            id_s11: 3
+            isEnable: !row.isEnableBoolean
           })
         });
 
@@ -263,7 +238,7 @@ export default {
         const data = await response.json();
 
         if (data.status === 'success') {
-          console.log('QUIZZ', row.Id, 'supprimé avec succès');
+          console.log('QUIZZ', row.id, 'supprimé avec succès');
           await loadQuizz();
         } else {
           console.error('Erreur lors de la suppression:', data.message);
@@ -274,67 +249,21 @@ export default {
     }
 
     function editRow(row) {
-      editQuizz.value = {
-        idQuizz: row.Id,
-        name: row.Nom,
-        isEnable: row.isEnable
-      }
-      openEditDialog.value = true
-    }
-
-    async function EditQuizz2(idQuizz, nom, isEnable) {
-      try {
-        const response = await fetch("http://10.0.52.142/success/api.php/edit_quizz", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({
-            idQuizz: idQuizz,
-            name: nom,
-            isEnable: isEnable
-          })
-        });
-
-        if (!response.ok) {
-          throw new Error("Erreur API " + response.status);
-        }
-
-        const data = await response.json();
-        console.log("QUIZZ modifié :", data);
-
-        if (data.status === "success") {
-          openEditDialog.value = false
-          await loadQuizz()
-        }
-
-        return data;
-
-      } catch (err) {
-        console.error("Erreur", err);
-      }
-    }
-
-    const editQuizz = ref({
-      idQuizz: null,
-      name: '',
-      isEnable: false
-    })
-
-    function openAddDialog() {
-      editedQuizz.value = null
-      currentQuizz.value = { name: '', isEnableBoolean: true }
-      showDialog.value = true
-    }
-
-    function openEditDialog(row) {
       editedQuizz.value = row
       currentQuizz.value = {
         name: row.NOM,
-        isEnableBoolean: row.isEnableBoolean
+        isEnable: row.isEnableBoolean
       }
       showDialog.value = true
     }
+
+    function openAddDialog() {
+      editedQuizz.value = null
+      currentQuizz.value = { name: '', isEnable: false }
+      showDialog.value = true
+    }
+
+
     function goToQuestionPage() {
       window.location.href = '/#/question';
     }
@@ -348,13 +277,10 @@ export default {
       currentUserId,
       openAddDialog,
       deleteRow,
-      openEditDialog,
+      editRow,
       addQuizz,
       goToQuestionPage,
       loadQuizz,
-      editRow,
-      editQuizz,
-      EditQuizz2,
       toggleStatus
     }
   }
