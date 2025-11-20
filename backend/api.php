@@ -223,6 +223,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             echo json_encode(["status" => "success"], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
             exit;
 
+        case 'edit_question':
+            if (empty($data['idQuestion']) || empty($data['name'])) {
+                http_response_code(422);
+                echo json_encode(["status" => "error", "message" => "Champs 'idQuestion' et 'name' requis."]);
+                exit;
+            }
+
+            $EditQuestion = $Question->editQuestion($data['idQuestion'], $data['name']);
+
+            if (!$EditQuestion) {
+                http_response_code(500);
+                echo json_encode(["status" => "error"]);
+                exit;
+            }
+
+            echo json_encode(["status" => "success"], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+            exit;
+
+        case 'edit_exam':
+            if (empty($data['idExam']) || empty($data['status']) || empty($data['time']) || empty($data['idQuizz']) || empty($data['idGroup'])) {
+                http_response_code(422);
+                echo json_encode(["status" => "error", "message" => "Champs 'idExam', 'name', 'scale', 'hasMalus', 'time', 'idQuizz' et 'idGroup' requis."]);
+                exit;
+            }
+
+            $EditExam = $Exam->editExam($data['idExam'], $data['name'], $data['status'], $data['scale'], $data['hasMalus'], $data['time'], $data['idQuizz'], $data['idGroup']);
+
+            if (!$EditExam) {
+                http_response_code(500);
+                echo json_encode(["status" => "error"]);
+                exit;
+            }
+
+            echo json_encode(["status" => "success"], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+            exit;
+
         case 'del_user':
             if (empty($data['id_s11'])) {
                 http_response_code(422);
@@ -269,6 +305,43 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $delQuizz = $Quizz->deleteQuizzByID($data['idQuizz']);
 
             if (!$delQuizz) {
+                http_response_code(500);
+                echo json_encode(["status" => "error"]);
+                exit;
+            }
+
+            echo json_encode(["status" => "success"], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+            exit;
+
+
+        case 'del_exam':
+            if (empty($data['idExam'])) {
+                http_response_code(422);
+                echo json_encode(["status" => "error", "message" => "Champs 'idExam' requis pour la supression."]);
+                exit;
+            }
+
+            $delExam = $Exam->deleteExam($data['idExam']);
+
+            if (!$delExam) {
+                http_response_code(500);
+                echo json_encode(["status" => "error"]);
+                exit;
+            }
+
+            echo json_encode(["status" => "success"], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+            exit;
+
+        case 'del_question':
+            if (empty($data['idQuestion'])) {
+                http_response_code(422);
+                echo json_encode(["status" => "error", "message" => "Champs 'idQuestion' requis pour la supression."]);
+                exit;
+            }
+
+            $delQuestion = $Question->deleteQuestion($data['idQuestion']);
+
+            if (!$delQuestion) {
                 http_response_code(500);
                 echo json_encode(["status" => "error"]);
                 exit;

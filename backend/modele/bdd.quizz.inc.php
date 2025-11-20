@@ -100,7 +100,7 @@ class Quizz extends ConnexionPDO {
 
     public function deleteQuizzByID($idQuizz) {
         try {
-            $req = $this->conn->prepare("DELETE FROM User WHERE idQuizz = :idQuizz");
+            $req = $this->conn->prepare("DELETE FROM Quizz WHERE idQuizz = :idQuizz");
             $req->bindValue(':idQuizz', $idQuizz, PDO::PARAM_INT);
             $resultat = $req->execute();
         } catch (PDOException $e) {

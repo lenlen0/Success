@@ -59,6 +59,29 @@ class Question extends ConnexionPDO {
         }
         return $resultat;
     }
+
+    public function deleteQuestion($idQuestion) {
+        try {
+            $req = $this->conn->prepare("DELETE FROM Question WHERE idQuestion = :idQuestion");
+            $req->bindValue(':idQuestion', $idQuestion, PDO::PARAM_INT);
+            $resultat = $req->execute();
+        } catch (PDOException $e) {
+            die($e->getMessage());
+        }
+        return $resultat;
+    }
+
+    public function editQuestion($idQuestion, $name) {
+        try {
+            $req = $this->conn->prepare("UPDATE Question SET name = :name WHERE idQuestion = :idQuestion");
+            $req->bindValue(':idQuestion', $idQuestion, PDO::PARAM_INT);
+            $req->bindValue(':name', $name, PDO::PARAM_STR);
+            $resultat = $req->execute();
+        } catch (PDOException $e) {
+            die($e->getMessage());
+        }
+        return $resultat;
+    }
 }
 
 ?>

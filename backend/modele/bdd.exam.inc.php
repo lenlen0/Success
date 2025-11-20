@@ -69,6 +69,37 @@ class Exam extends ConnexionPDO {
         }
         return $resultat;
     }
+
+    public function deleteExam($idExam) {
+        try {
+            $req = $this->conn->prepare("DELETE FROM Exam WHERE idExam = :idExam");
+            $req->bindValue(':idExam', $idExam, PDO::PARAM_INT);
+            $resultat = $req->execute();
+        } catch (PDOException $e) {
+            die($e->getMessage());
+        }
+        return $resultat;
+    }
+
+    public function editExam($idExam, $name, $status, $scale, $hasMalus, $time, $idQuizz, $idGroup) {
+        try {
+            $req = $this->conn->prepare("UPDATE Exam
+            SET name = :name, status = :status, scale = :scale, hasMalus = :hasMalus, time = :time, idQuizz = :idQuizz, idGroup = :idGroup
+            WHERE idExam = :idExam");
+            $req->bindValue(':idExam', $idExam, PDO::PARAM_INT);
+            $req->bindValue(':name', $name, PDO::PARAM_STR);
+            $req->bindValue(':status', $status, PDO::PARAM_STR);
+            $req->bindValue(':scale', $scale, PDO::PARAM_INT);
+            $req->bindValue(':hasMalus', $hasMalus, PDO::PARAM_INT);
+            $req->bindValue(':time', $time, PDO::PARAM_INT);
+            $req->bindValue(':idQuizz', $idQuizz, PDO::PARAM_INT);
+            $req->bindValue(':idGroup', $idGroup, PDO::PARAM_INT);
+            $resultat = $req->execute();
+        } catch (PDOException $e) {
+            die($e->getMessage());
+        }
+        return $resultat;
+    }
 }
 
 ?>
