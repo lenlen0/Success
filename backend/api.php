@@ -205,6 +205,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             echo json_encode(["status" => "success"], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
             exit;
 
+        case 'edit_quizz':
+            if (empty($data['idQuizz']) || empty($data['name'])) {
+                http_response_code(422);
+                echo json_encode(["status" => "error", "message" => "Champs 'idQuizz', 'name' et 'isEnable' requis."]);
+                exit;
+            }
+
+            $EditQuizz = $Quizz->editQuizz($data['idQuizz'], $data['name'], $data['isEnable']);
+
+            if (!$EditQuizz) {
+                http_response_code(500);
+                echo json_encode(["status" => "error"]);
+                exit;
+            }
+
+            echo json_encode(["status" => "success"], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+            exit;
+
         case 'del_user':
             if (empty($data['id_s11'])) {
                 http_response_code(422);
@@ -233,6 +251,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $delGroup = $Group->deleteGroup($data['idGroup']);
 
             if (!$delGroup) {
+                http_response_code(500);
+                echo json_encode(["status" => "error"]);
+                exit;
+            }
+
+            echo json_encode(["status" => "success"], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+            exit;
+
+        case 'del_quizz':
+            if (empty($data['idQuizz'])) {
+                http_response_code(422);
+                echo json_encode(["status" => "error", "message" => "Champs 'idQuizz' requis pour la supression."]);
+                exit;
+            }
+
+            $delQuizz = $Quizz->deleteQuizzByID($data['idQuizz']);
+
+            if (!$delQuizz) {
                 http_response_code(500);
                 echo json_encode(["status" => "error"]);
                 exit;
