@@ -37,8 +37,8 @@
 
           <template v-slot:body-cell-Action="props">
             <q-td :props="props" auto-width class="text-center">
-              <q-btn flat round dense color="purple-7" icon="delete" size="sm" @click="deleteQuizz(props.row)"/>
-              <q-btn flat round dense color="purple-7" icon="edit" size="sm" @click="openEditDialog(props.row)"/>
+              <q-btn flat color="purple-7" icon="delete_outline" align="center" @click="deleteRow(props.row)" />
+              <q-btn flat color="purple-7" icon="edit" align="center" @click="editRow(props.row)" />
             </q-td>
           </template>
         </q-table>
@@ -191,15 +191,6 @@ export default {
       showDialog.value = true
     }
 
-    function deleteQuizz(rowToDelete) {
-      const index = rows.value.indexOf(rowToDelete)
-      if (index > -1) rows.value.splice(index, 1)
-    }
-
-    function goToQuestionPage() {
-      console.log("Navigation vers les questions")
-    }
-
     async function toggleStatus(row) {
       try {
         const response = await fetch("http://10.0.52.142/success/api.php/update_quizz", {
@@ -229,6 +220,78 @@ export default {
       }
     }
 
+    async function deleteRow(row) {
+      try {
+        const response = await fetch('http://10.0.52.142/success/api.php/del_quizz', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({idQuizz: row.id})
+        });
+        if (!response.ok) throw new Error('Erreur HTTP ' + response.status);
+
+        const data = await response.json();
+
+        if (data.status === 'success') {
+          console.log('QUIZZ', row.Id, 'supprimé avec succès');
+          await loadQuizz();
+        } else {
+          console.error('Erreur lors de la suppression:', data.message);
+        }
+      } catch (err) {
+        console.error('Impossible de supprimer le quizz :', err);
+      }
+    }
+
+    function editRow(row) {
+      EditQuizz.value = {
+        Id: row.Id,
+        Nom: row.Nom,
+        Prenom: row.Prenom,
+        PWD: row.PWD,
+        role: row.role
+      }
+      openEditDialog.value = true
+    }
+
+    async function EditQuizz(idQuizz, nom, isEnable) {
+      try {
+        const response = await fetch("http://10.0.52.142/success/api.php/edit_quizz", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            idQuizz: id,
+            name: nom,
+            isEnable: isEnable
+
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error("Erreur API " + response.status);
+        }
+
+        const data = await response.json();
+        console.log("QUIZZ modifié :", data);
+
+        if (data.status === "success") {
+          openEditDialog.value = false
+          await loadQuizz()
+        }
+
+        return data;
+
+      } catch (err) {
+        console.error("Erreur", err);
+      }
+    }
+
+
+
+
     return {
       columns,
       rows,
@@ -237,11 +300,12 @@ export default {
       isEditing,
       currentUserId,
       openAddDialog,
-      deleteQuizz,
+      deleteRow,
       openEditDialog,
-      goToQuestionPage,
       addQuizz,
       loadQuizz,
+      editRow,
+      EditQuizz,
       toggleStatus
     }
   }
