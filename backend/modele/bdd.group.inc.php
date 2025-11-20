@@ -48,6 +48,29 @@ class Group extends ConnexionPDO {
         }
         return $resultat;
     }
+
+    public function deleteGroup($idGroup) {
+        try {
+            $req = $this->conn->prepare("DELETE FROM `Group` WHERE idGroup = :idGroup");
+            $req->bindValue(':idGroup', $idGroup, PDO::PARAM_INT);
+            $resultat = $req->execute();
+        } catch (PDOException $e) {
+            die($e->getMessage());
+        }
+        return $resultat;
+    }
+
+    public function editGroup($idGroup, $name) {
+        try {
+            $req = $this->conn->prepare("UPDATE `Group` SET name = :name WHERE idGroup = :idGroup");
+            $req->bindValue(':idGroup', $idGroup, PDO::PARAM_INT);
+            $req->bindValue(':name', $role, PDO::PARAM_STR);
+            $resultat = $req->execute();
+        } catch (PDOException $e) {
+            die($e->getMessage());
+        }
+        return $resultat;
+    }
 }
 
 ?>

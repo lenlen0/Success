@@ -187,6 +187,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             echo json_encode(["status" => "success"], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
             exit;
 
+        case 'edit_group':
+            if (empty($data['idGroup']) || empty($data['name'])) {
+                http_response_code(422);
+                echo json_encode(["status" => "error", "message" => "Champs 'idGroup' et 'name' requis."]);
+                exit;
+            }
+
+            $EditGroup = $Group->editGroup($data['idGroup'], $data['name']);
+
+            if (!$EditGroup) {
+                http_response_code(500);
+                echo json_encode(["status" => "error"]);
+                exit;
+            }
+
+            echo json_encode(["status" => "success"], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+            exit;
+
         case 'del_user':
             if (empty($data['id_s11'])) {
                 http_response_code(422);
@@ -197,6 +215,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $delUser = $User->deleteUserByID($data['id_s11']);
 
             if (!$delUser) {
+                http_response_code(500);
+                echo json_encode(["status" => "error"]);
+                exit;
+            }
+
+            echo json_encode(["status" => "success"], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+            exit;
+
+        case 'del_group':
+            if (empty($data['idGroup'])) {
+                http_response_code(422);
+                echo json_encode(["status" => "error", "message" => "Champs 'idGroup' requis pour la supression."]);
+                exit;
+            }
+
+            $delGroup = $Group->deleteGroup($data['idGroup']);
+
+            if (!$delGroup) {
                 http_response_code(500);
                 echo json_encode(["status" => "error"]);
                 exit;
