@@ -17,20 +17,28 @@
           :rows="rows"
           :columns="columns"
           row-key="id"
+          class="sticky-header-table"
         >
           <template v-slot:body-cell-isEnableBoolean="props">
-            <q-td :props="props" class="flex items-center justify-center">
-              <div>
-                {{ props.row.isEnable ? 'Ouvert' : 'Fermé' }}
+            <q-td :props="props" auto-width class="text-center">
+              <div
+                class="row items-center justify-center q-gutter-xs"
+                @click="toggleStatus(props.row)"
+                style="cursor: pointer;"
+              >
+                <div
+                  class="status-box"
+                  :style="{ backgroundColor: props.row.isEnableBoolean ? '#4CAF50' : '#f44336', width: '12px', height: '12px' }"
+                />
+                <span style="font-size: 13px; white-space: nowrap;">{{ props.row.isEnableBoolean ? 'Activé' : 'Désactivé' }}</span>
               </div>
             </q-td>
           </template>
+
           <template v-slot:body-cell-Action="props">
-            <q-td :props="props" class="flex items-center justify-center">
-              <div class="row items-center q-gutter-sm no-wrap">
-                <q-btn flat color="purple-7" dense icon="delete" aria-label="Supprimer" @click="deleteQuizz(props.row)"/>
-                <q-btn flat color="purple-7" dense icon="edit" aria-label="Éditer" @click="openEditDialog(props.row)"/>
-              </div>
+            <q-td :props="props" auto-width class="text-center">
+              <q-btn flat round dense color="purple-7" icon="delete" size="sm" @click="deleteQuizz(props.row)"/>
+              <q-btn flat round dense color="purple-7" icon="edit" size="sm" @click="openEditDialog(props.row)"/>
             </q-td>
           </template>
         </q-table>
@@ -40,7 +48,6 @@
     <q-dialog v-model="showDialog" persistent>
       <q-card style="min-width: 400px;">
         <q-card-section class="bg-purple-1 text-purple-10">
-          <div class="text-h6">{{ isEditing ? 'Éditer le Questionnaire' : 'Nouveau Questionnaire' }}</div>
         </q-card-section>
 
         <q-card-section class="q-pt-none q-pb-sm">
@@ -89,8 +96,8 @@ import { ref, computed, onMounted } from 'vue'
 const columns = [
   { name: 'NOM', align: 'center', label: 'NOM', field: 'NOM', sortable: true },
   { name: 'Nombre_De_Questions', label: 'Nombre De Questions', field: 'Nombre_De_Questions', align: 'center'},
-  { name: 'Status', label: 'Statut', field: 'isEnableBoolean', align: 'center'},
-  { name: 'Action', label: 'Action', field: 'Action' , align: 'center' }
+  { name: 'isEnableBoolean', label: 'Statut', field: 'isEnableBoolean', align: 'center'},
+  { name: 'Action', label: 'Action', field: 'id', align: 'center' }
 ]
 
 export default {
@@ -193,6 +200,35 @@ export default {
       console.log("Navigation vers les questions")
     }
 
+    async function toggleStatus(row) {
+      try {
+        const response = await fetch("http://10.0.52.142/success/api.php/update_quizz", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            id: row.id,
+            name: row.NOM,
+            isEnable: !row.isEnableBoolean,
+            id_s11: 3
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error("Erreur API " + response.status);
+        }
+
+        const data = await response.json();
+        if (data.status === "success") {
+          row.isEnableBoolean = !row.isEnableBoolean;
+          console.log("Statut mis à jour :", data);
+        }
+      } catch (err) {
+        console.error("Erreur lors de la mise à jour du statut", err);
+      }
+    }
+
     return {
       columns,
       rows,
@@ -205,7 +241,8 @@ export default {
       openEditDialog,
       goToQuestionPage,
       addQuizz,
-      loadQuizz
+      loadQuizz,
+      toggleStatus
     }
   }
 }
@@ -214,6 +251,12 @@ export default {
 <style>
 body{
   background-color: #FFF4FF;
+}
+
+.status-box {
+  width: 16px;
+  height: 16px;
+  border-radius: 2px;
 }
 
 @media (max-width: 600px) {
