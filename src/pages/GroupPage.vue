@@ -5,7 +5,7 @@
       <h4 class="text-purple-12 text-weight-bold" style="margin-bottom: 8px;">Groupes</h4>
 
       <!-- Bouton pour ouvrir le dialog -->
-      <q-btn round color="purple-7" icon="add" style="margin: 8px" @click="showDialog = true" />
+      <q-btn round color="purple-7" icon="add" style="margin: 8px" @click="openAddDialog" />
       <br /><br />
 
       <!-- Tableau Quasar -->
@@ -27,7 +27,7 @@
       </q-table>
     </div>
 
-    <!-- Dialog pour ajouter un nouvel utilisateur -->
+    <!-- Dialog pour ajouter un groupe -->
     <q-dialog v-model="showDialog" persistent>
       <q-card style="min-width: 400px;">
         <q-card-section class="bg-purple-1 text-purple-10">
@@ -53,6 +53,38 @@
         </q-card-actions>
       </q-card>
     </q-dialog>
+
+    <!-- Dialog pour modifier un groupe -->
+    <q-dialog v-model="showEditDialog" persistent>
+      <q-card style="min-width: 400px;">
+        <q-card-section class="bg-purple-1 text-purple-10">
+          <div class="text-h6">Modifier un groupe</div>
+        </q-card-section>
+
+        <q-card-section>
+          <div class="row q-gutter-md">
+            <q-input 
+              v-model="editingGroup.Name" 
+              rounded 
+              outlined 
+              label="Nom" 
+              class="col-11" 
+            />
+          </div>
+        </q-card-section>
+
+        <q-card-actions align="right">
+          <q-btn unelevated rounded color="purple-7" label="Annuler" v-close-popup />
+          <q-btn
+            unelevated
+            rounded
+            color="purple-7"
+            label="Modifier"
+            @click="editGroup(editingGroup.Id, editingGroup.Name)"
+          />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
   </q-page>
 </template>
 
@@ -60,7 +92,13 @@
 import { ref, onMounted } from 'vue'
 
 const showDialog = ref(false)
+const showEditDialog = ref(false)
 const rows = ref([])
+const editingGroup = ref({
+  Id: null,
+  Name: '',
+  nb_user: 0
+})
 
 // Colonnes du tableau
 const columns = [
@@ -84,6 +122,7 @@ async function loadGroups() {
 
     // 🧩 Adapter les données à tes colonnes
     rows.value = data.map(item => ({
+      Id: item.idGroup,
       Nom: item.name,
       nb_user: item.nb_user
     }))
@@ -92,11 +131,16 @@ async function loadGroups() {
   }
 }
 
-// Nouvel utilisateur
+// Nouveau groupe
 const newGroup = ref({
-  Nom: '',
+  Name: '',
   id_s11: 3
 })
+
+function openAddDialog() {
+  newGroup.value.Name = ''
+  showDialog.value = true
+}
 
 async function addGroup(name) {
   try {
@@ -130,10 +174,46 @@ async function addGroup(name) {
   }
 }
 
+async function editGroup(id, name) {
+  try {
+    const response = await fetch("http://10.0.52.142/success/api.php/edit_group", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        idGroup: id,
+        name: name
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error("Erreur API " + response.status);
+    }
+
+    const data = await response.json();
+
+    if (data.status === "success") {
+      showEditDialog.value = false
+      await loadGroups()
+    }
+
+    return data;
+
+  } catch (err) {
+    console.error("Erreur", err);
+  }
+}
+
 
 
 function editRow(row) {
-  console.log('Modifier :', row)
+  editingGroup.value = {
+    Id: row.Id,
+    Name: row.Nom,
+    nb_user: row.nb_user
+  }
+  showEditDialog.value = true
 }
 
 function deleteRow(row) {
