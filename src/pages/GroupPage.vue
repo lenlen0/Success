@@ -114,21 +114,17 @@ const columns = [
 ]
 
 async function loadGroups() {
-  try {
-    const response = await fetch('http://10.0.52.142/success/api.php/show_group')
-    if (!response.ok) throw new Error('Erreur HTTP ' + response.status)
+  const response = await fetch('http://10.0.52.142/success/api.php/show_group')
+  if (!response.ok) throw new Error('Erreur HTTP ' + response.status)
 
-    const data = await response.json()
+  const data = await response.json()
 
-    // 🧩 Adapter les données à tes colonnes
-    rows.value = data.map(item => ({
-      Id: item.idGroup,
-      Nom: item.name,
-      nb_user: item.nb_user
-    }))
-  } catch (err) {
-    console.error('Impossible de charger les groupes :', err)
-  }
+  // 🧩 Adapter les données à tes colonnes
+  rows.value = data.map(item => ({
+    Id: item.idGroup,
+    Nom: item.name,
+    nb_user: item.nb_user
+  }))
 }
 
 // Nouveau groupe
@@ -143,66 +139,55 @@ function openAddDialog() {
 }
 
 async function addGroup(name) {
-  try {
-    const response = await fetch("http://10.0.52.142/success/api.php/add_group", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        name: name,
-        id_s11: 3
-      })
-    });
+  const response = await fetch("http://10.0.52.142/success/api.php/add_group", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      name: name,
+      id_s11: 3
+    })
+  });
 
-    if (!response.ok) {
-      throw new Error("Erreur API " + response.status);
-    }
-
-    const data = await response.json();
-    console.log("Groupe ajouté :", data);
-
-    if (data.status === "success") {
-      showDialog.value = false
-      await loadGroups()
-    }
-
-    return data;
-
-  } catch (err) {
-    console.error("Erreur", err);
+  if (!response.ok) {
+    throw new Error("Erreur API " + response.status);
   }
+
+  const data = await response.json();
+
+  if (data.status === "success") {
+    showDialog.value = false
+    await loadGroups()
+  }
+
+  return data;
 }
 
 async function editGroup(id, name) {
-  try {
-    const response = await fetch("http://10.0.52.142/success/api.php/edit_group", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        idGroup: id,
-        name: name
-      })
-    });
+  const response = await fetch("http://10.0.52.142/success/api.php/edit_group", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      idGroup: id,
+      name: name
+    })
+  });
 
-    if (!response.ok) {
-      throw new Error("Erreur API " + response.status);
-    }
-
-    const data = await response.json();
-
-    if (data.status === "success") {
-      showEditDialog.value = false
-      await loadGroups()
-    }
-
-    return data;
-
-  } catch (err) {
-    console.error("Erreur", err);
+  if (!response.ok) {
+    throw new Error("Erreur API " + response.status);
   }
+
+  const data = await response.json();
+
+  if (data.status === "success") {
+    showEditDialog.value = false
+    await loadGroups()
+  }
+
+  return data;
 }
 
 
@@ -216,8 +201,21 @@ function editRow(row) {
   showEditDialog.value = true
 }
 
-function deleteRow(row) {
-  rows.value = rows.value.filter(r => r.Id !== row.Id)
+async function deleteRow(row) {
+  const response = await fetch('http://10.0.52.142/success/api.php/del_group', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ idGroup: row.Id })
+  });
+  if (!response.ok) throw new Error('Erreur HTTP ' + response.status);
+
+  const data = await response.json();
+
+  if (data.status === 'success') {
+    await loadGroups();
+  }
 }
 
 // Chargement depuis ton API
