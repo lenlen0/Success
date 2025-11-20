@@ -97,7 +97,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             exit;
 
         case 'add_quizz':
-            if (empty($data['name']) || empty($data['isEnable']) || empty($data['id_s11'])) {
+            if (empty($data['name']) || empty($data['id_s11'])) {
                 http_response_code(422);
                 echo json_encode(["status" => "error", "message" => "Champs 'name', 'isEnable' et 'id_s11' requis."]);
                 exit;
@@ -115,7 +115,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             exit;
 
         case 'add_exam':
-            if (empty($data['name']) || empty($data['status']) || empty($data['code']) || empty($data['scale']) || empty($data['hasMalus'])
+            if (empty($data['name']) || empty($data['status']) || empty($data['code'])
                 || empty($data['time']) || empty($data['idQuizz']) || empty($data['idGroup'])) {
                 http_response_code(422);
                 echo json_encode(["status" => "error", "message" => "Champs 'name', 'status', 'code', 'scale', 'hasMalus', 'time', 'idQuizz' et 'idGroup' requis."]);
