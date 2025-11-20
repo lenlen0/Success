@@ -64,7 +64,7 @@ class Group extends ConnexionPDO {
         try {
             $req = $this->conn->prepare("UPDATE `Group` SET name = :name WHERE idGroup = :idGroup");
             $req->bindValue(':idGroup', $idGroup, PDO::PARAM_INT);
-            $req->bindValue(':name', $role, PDO::PARAM_STR);
+            $req->bindValue(':name', $name, PDO::PARAM_STR);
             $resultat = $req->execute();
         } catch (PDOException $e) {
             die($e->getMessage());
