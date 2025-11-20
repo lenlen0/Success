@@ -116,7 +116,6 @@ const columns = [
   { name: 'Id', label: 'ID', align: 'left', field: 'Id' },
   { name: 'Nom', label: 'Nom', align: 'left', field: 'Nom' },
   { name: 'Prenom', label: 'Prénom', align: 'left', field: 'Prenom' },
-  { name: 'PWD', label: 'Mot de passe', align: 'left', field: 'PWD' },
   { name: 'role', label: 'Role', align: 'left', field: 'role' },
   {
     name: 'action',
