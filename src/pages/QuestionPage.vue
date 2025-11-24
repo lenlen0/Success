@@ -37,18 +37,6 @@
         <q-card-section>
           <div class="row q-gutter-md">
             <q-input v-model="newQuestion.Name" rounded outlined label="Question" class="col-11" />
-            <q-select
-              v-model="newQuestion.idQuizz"
-              :options="quizzOptions"
-              option-label="label"
-              option-value="value"
-              emit-value
-              map-options
-              rounded
-              outlined
-              label="Questionnaire"
-              class="col-11"
-            />
           </div>
         </q-card-section>
         <q-card-actions align="right">
@@ -175,11 +163,7 @@ function openAddDialog() {
   showDialog.value = true
 }
 
-async function addQuestion(name, idQuizz) {
-  if (!idQuizz) {
-    alert('Veuillez sélectionner un questionnaire')
-    return
-  }
+async function addQuestion(name) {
 
   const response = await fetch("http://10.0.52.142/success/api.php/add_question", {
     method: "POST",
@@ -188,7 +172,7 @@ async function addQuestion(name, idQuizz) {
     },
     body: JSON.stringify({
       name: name,
-      idQuizz: idQuizz
+      idQuizz: idQuizz.value
     })
   });
 
