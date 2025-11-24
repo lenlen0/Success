@@ -260,7 +260,7 @@ function openAddDialog() {
 
 function goToQuestionPage() {
   if (editedQuizz.value && editedQuizz.value.id) {
-    window.location.href = '/#/question?id=' + editedQuizz.value.id;
+    window.location.href = '/#/question?idQuizz=' + editedQuizz.value.id;
   } else {
     console.warn("Aucun ID de quiz trouvé.");
   }
