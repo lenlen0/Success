@@ -20,10 +20,27 @@
       >
         <!-- Slot pour customiser la colonne "action" -->
         <template v-slot:body-cell-action="props">
-          <q-btn flat color="purple-7" icon="visibility" align="center" @click="editRow(props.row)" />
-          <q-btn flat color="purple-7" icon="replay" align="center" @click="editRow(props.row)" />
+          <q-btn flat color="purple-7" icon="visibility" align="center" @click="detailsRow(props.row)" />
+          <q-btn flat color="purple-7" icon="replay" align="center" @click="retryExam(props.row)" />
         </template>
       </q-table>
+
+      <!-- Permet d'afficher le détails d'un Examen passé -->
+      <q-dialog v-model="showDetailsDialog" persistent>
+        <q-card style="min-width: 400px;">
+          <q-card-section class="bg-purple-1 text-purple-10">
+            <div class="text-h6">Details du quizz</div>
+          </q-card-section>
+
+          <q-card-section>
+            <p>Temporaire</p>
+          </q-card-section>
+
+          <q-card-actions>
+            <q-btn unelevated rounded color="purple-7" label="Annuler" v-close-popup />
+          </q-card-actions>
+        </q-card>
+      </q-dialog>
     </div>
   </q-page>
 </template>
@@ -33,6 +50,7 @@ import { ref, onMounted } from 'vue'
 
 // Variables réactives
 const rows = ref([])
+const showDetailsDialog = ref(false)
 
 // Colonnes du tableau
 const columns = [
@@ -51,8 +69,17 @@ const columns = [
 ]
 
 // Éditer une ligne (console log temporaire)
-function editRow(row) {
-  console.log('Modifier :', row)
+function detailsRow(row) {
+  console.log('details :', row)
+  showDetailsDialog.value = true;
+}
+
+function retryExam(row) {
+  if (row.status === "Entrainement") {
+    alert("Réaliser le renvoi vers l'examen.")
+  } else {
+    alert("Examen déja passer, impossible de le repasser.")
+  }
 }
 
 async function loadExamU(id_s11) {
