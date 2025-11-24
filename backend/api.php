@@ -5,12 +5,14 @@ include "modele/bdd.quizz.inc.php";
 include "modele/bdd.exam.inc.php";
 include "modele/bdd.group.inc.php";
 include "modele/bdd.user.inc.php";
+include "modele/bdd.answer.inc.php";
 
 $Question = new Question();
 $Quizz = new Quizz();
 $Exam = new Exam();
 $Group = new Group();
 $User = new User();
+$Answer = new Answer();
 
 // En-t  tes pour le JSON et CORS
 header("Content-Type: application/json; charset=UTF-8");
@@ -143,6 +145,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $newQuestion = $Question->addQuestion($data['name'], $data['idQuizz']);
 
             if (!$newQuestion) {
+                http_response_code(500);
+                echo json_encode(["status" => "error"]);
+                exit;
+            }
+
+            echo json_encode(["status" => "success"], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+            exit;
+
+        case 'add_answer':
+            if (empty($data['name']) || empty($data['idQuestion'])) {
+                http_response_code(422);
+                echo json_encode(["status" => "error", "message" => "Champs 'name', 'isCorrect' et 'idQuestion' requis."]);
+                exit;
+            }
+
+            $newAnswer = $Answer->addAnswer($data['name'], $data['isCorrect'], $data['idQuestion']);
+
+            if (!$newAnswer) {
                 http_response_code(500);
                 echo json_encode(["status" => "error"]);
                 exit;
@@ -392,6 +412,11 @@ $tab_resource = [
         'model' => $User,
         'requeteByID' => 'getUserByID',
         'requete' => 'getAllUser'
+    ],
+    'show_answer' => [
+        'model' => $Answer,
+        'requeteByID' => 'getAnswerByIDQuestion',
+        'requete' => ''
     ]
 ];
 
