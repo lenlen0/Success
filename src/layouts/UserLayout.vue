@@ -51,10 +51,10 @@ const linksList = [
     title: 'Accueil',
     caption: "Page d'accueil",
     icon: 'home',
-    link: 'http://localhost:9000/#/'
+    link: 'http://localhost:9000/#/AccueilU'
   },
   {
-    title: 'Mes Evalutions',
+    title: 'Mes Evaluations',
     caption: 'Voir historique examens',
     icon: 'checklist',
     link: 'http://localhost:9000/#/ExamU'
