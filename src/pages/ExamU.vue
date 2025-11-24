@@ -7,10 +7,6 @@
         style="margin-bottom: 8px;"
       >Mes Evaluations</h4>
 
-      <!-- Bouton pour ouvrir le dialog -->
-      <q-btn round color="purple-7" icon="add" style="margin: 8px" @click="showDialog = true" />
-      <br/><br/>
-
       <!-- Tableau Quasar -->
       <q-table
         flat
@@ -29,26 +25,6 @@
         </template>
       </q-table>
     </div>
-
-    <!-- Dialog pour ajouter une nouvelle évaluation -->
-    <q-dialog v-model="showDialog" persistent>
-      <q-card style="min-width: 400px;">
-        <q-card-section class="bg-purple-1 text-purple-10">
-          <div class="text-h6">Ajouté évaluation</div>
-        </q-card-section>
-
-        <q-card-section>
-          <div class="row q-gutter-md">
-            <q-input rounded outlined :label="'Code'" class="col-11" />
-          </div>
-        </q-card-section>
-
-        <q-card-actions align="right">
-          <q-btn unelevated rounded color="purple-7" label="Annuler" v-close-popup />
-          <q-btn unelevated rounded color="purple-7" label="Ajouter" @click="addEval" />
-        </q-card-actions>
-      </q-card>
-    </q-dialog>
   </q-page>
 </template>
 
@@ -56,16 +32,15 @@
 import { ref, onMounted } from 'vue'
 
 // Variables réactives
-const showDialog = ref(false)
 const rows = ref([])
 
 // Colonnes du tableau
 const columns = [
-  { name: 'nom', label: 'Nom', align: 'left', field: 'nom' },
-  { name: 'date', label: 'Date', align: 'left', field: 'date' },
+  { name: 'exam_name', label: 'Nom', align: 'left', field: 'exam_name' },
+  { name: 'dateExam', label: 'Date', align: 'left', field: 'dateExam' },
   { name: 'status', label: 'Status', align: 'left', field: 'status' },
-  { name: 'Note', label: 'Note', align: 'left', field: 'Note' },
-  { name: 'Code', label: 'Code', align: 'left', field: 'Code' },
+  { name: 'avg_grade', label: 'Note', align: 'left', field: 'avg_grade' },
+  { name: 'code', label: 'Code', align: 'left', field: 'code' },
   {
     name: 'action',
     label: 'Action',
@@ -75,50 +50,34 @@ const columns = [
   }
 ]
 
-const newEval = ref({
-  Code: ''
-})
-
-// Ajouter une évaluation (temporaire côté client)
-function addEval() {
-  if (newEval.value.Code) {
-    rows.value.push({ ...newEval.value })
-    Object.keys(newEval.value).forEach(k => newEval.value[k] = '')
-    showDialog.value = false
-  }
-}
-
 // Éditer une ligne (console log temporaire)
 function editRow(row) {
   console.log('Modifier :', row)
 }
 
-// ID de l'utilisateur courant
-const currentUserId = '2'
-
-// Récupération des données depuis l’API pour cet utilisateur
-onMounted(async () => {
+async function loadExamU(id_s11) {
   try {
-    // 🔹 Utilisation directe de l'URL avec l'id utilisateur
-    const response = await fetch(`http://10.0.52.142/success/api.php/show_exam/${currentUserId}`)
+    const response = await fetch(`http://10.0.52.142/success/api.php/show_exam/${id_s11}`)
     if (!response.ok) throw new Error('Erreur HTTP ' + response.status)
 
     const data = await response.json()
 
-    // Mapping pour afficher correctement dans le tableau
+    // 🧩 Adapter les données à tes colonnes
     rows.value = data.map(item => ({
-      nom: item.exam_name,
-      date: item.dateExam,
+      exam_name: item.exam_name,
+      dateExam: item.dateExam,
       status: item.status,
-      Note: item.avg_grade,
-      Code: item.code,
-      groupe: item.group_name
+      avg_grade: item.avg_grade,
+      code: item.code
     }))
-
-    console.log('Évaluations pour l’utilisateur', currentUserId, rows.value)
   } catch (err) {
-    console.error('Impossible de charger les données depuis la VM :', err)
+    console.error('Impossible de charger les exams :', err)
   }
+}
+
+// Récupération des données depuis l’API pour cet utilisateur
+onMounted(async () => {
+  await loadExamU(2)
 })
 </script>
 

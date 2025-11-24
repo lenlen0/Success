@@ -7,6 +7,8 @@ class Exam extends ConnexionPDO {
     public function getExamByIDUser($id_user) {
         $resultat = array();
         try {
+            $this->conn->exec("SET sql_mode=(SELECT REPLACE(@@sql_mode, 'ONLY_FULL_GROUP_BY', ''))");
+
             $req = $this->conn->prepare("SELECT e.idExam, e.name AS exam_name, e.dateExam, e.status, e.code, QU.name AS quizz_name, g.name AS group_name, ROUND(AVG(te.grade), 2) AS avg_grade
             FROM Exam e
             INNER JOIN Quizz QU ON e.idQuizz = QU.idQuizz
@@ -15,7 +17,7 @@ class Exam extends ConnexionPDO {
             INNER JOIN TakeExam te ON e.idExam = te.idExam
             WHERE u.id_s11 = :id_user
             GROUP BY e.idExam, e.name, e.dateExam, e.status, e.code, QU.name, g.name
-            ORDER BY e.dateExam DESC;");
+            ORDER BY te.date_exam DESC");
             $req->bindValue(':id_user', $id_user, PDO::PARAM_INT);
             $req->execute();
 
