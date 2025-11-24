@@ -158,9 +158,9 @@ async function addQuizz(name, isEnable) {
   }
 }
 
-async function loadQuizz() {
-  try {
-    const url = 'http://10.0.52.142/success/api.php/show_quizz';
+    async function loadQuizz() {
+      try {
+        const url = 'http://10.0.52.142/success/api.php/show_quizz';
 
     const response = await fetch(url)
     if (!response.ok) throw new Error('Erreur HTTP ' + response.status)

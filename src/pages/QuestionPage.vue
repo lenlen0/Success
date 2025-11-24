@@ -1,250 +1,283 @@
 <template>
-  <div class="q-pa-md q-gutter-sm" style="background-color: #FFF4FF; min-height: 100vh;">
-    <!-- Titre -->
-    <h4
-      class="text-purple-12 text-weight-bold"
-      style="margin-bottom: 8px;"
-    >Questions</h4>
+  <q-page class="bg-rose column items-center q-pa-lg" style="background-color: #FFF4FF;">
+    <div class="q-pa-md full-width">
+      <!-- Titre -->
+      <h4 class="text-purple-12 text-weight-bold" style="margin-bottom: 8px;">Questions</h4>
 
-    <!-- Bouton pour ouvrir la popup -->
-    <q-btn round color="purple-7" icon="add" @click="popup = true" />
+      <!-- Bouton pour ouvrir le dialog -->
+      <q-btn round color="purple-7" icon="add" style="margin: 8px" @click="openAddDialog" />
+      <br /><br />
 
-    <!-- Popup modale pour ajout/modif question/réponses -->
-    <q-dialog v-model="popup">
-      <q-card style="width:400px;">
-        <q-card-section class="flex column justify-evenly items-center q-pa-none" id="formulaire-ajout-question">
-          <q-card-section class="bg-purple-1 text-purple-10 q-mb-sm" style="width:100%;">
-            <div class="text-h6">Nouvelle évaluation</div>
-          </q-card-section>
-          <q-input rounded outlined :model-value="editQuestion" label="Question" class="q-mb-sm"/>
+      <!-- Tableau Quasar -->
+      <q-table
+        flat
+        bordered
+        color="primary"
+        card-class="bg-white"
+        table-header-class="bg-purple-1 text-purple-10"
+        :rows="rows"
+        :columns="columns"
+        row-key="Id"
+      >
+        <!-- Slot pour customiser la colonne "action" -->
+        <template v-slot:body-cell-action="props">
+          <q-btn flat color="purple-7" icon="edit" align="center" @click="editRow(props.row)" />
+          <q-btn flat color="purple-7" icon="delete_outline" align="center" @click="deleteRow(props.row)" />
+        </template>
+      </q-table>
+    </div>
 
-          <!-- Réponses avec bouton pour enlever si > 2 -->
-          <div
-            v-for="(reponse, idx) in editReponses"
-            :key="'reponse'+(idx+1)"
-            class="q-mb-sm row items-center"
-          >
-            <q-input
+    <!-- Dialog pour ajouter une question -->
+    <q-dialog v-model="showDialog" persistent>
+      <q-card style="min-width: 400px;">
+        <q-card-section class="bg-purple-1 text-purple-10">
+          <div class="text-h6">Ajouter une question</div>
+        </q-card-section>
+
+        <q-card-section>
+          <div class="row q-gutter-md">
+            <q-input v-model="newQuestion.Name" rounded outlined label="Question" class="col-11" />
+            <q-select
+              v-model="newQuestion.idQuizz"
+              :options="quizzOptions"
+              option-label="label"
+              option-value="value"
+              emit-value
+              map-options
               rounded
               outlined
-              :model-value="editReponses[idx]"
-              :label="'Réponse ' + (idx + 1)"
-              class="col"
-            />
-            <q-btn
-              v-if="editReponses.length > 2"
-              round
-              dense
-              flat
-              color="red"
-              icon="remove"
-              class="q-ml-xs"
-              :disable="editReponses.length <= 2"
-              :title="'Enlever cette réponse'"
+              label="Questionnaire"
+              class="col-11"
             />
           </div>
-
-          <!-- Bouton pour ajouter une réponse, max 5 -->
-          <q-btn
-            v-if="editReponses.length < 5"
-            round
-            color="purple-7"
-            icon="add"
-            class="q-mb-sm"
-            :disable="editReponses.length>=5"
-            :title="editReponses.length>=5 ? 'Nombre maximum de réponses atteint' : 'Ajouter une réponse'"
-          />
         </q-card-section>
         <q-card-actions align="right">
-          <q-btn rounded label="Fermer" color="purple-7" v-close-popup />
+          <q-btn unelevated rounded color="purple-7" label="Annuler" v-close-popup />
           <q-btn
-            rounded
-            v-if="!isEditMode"
-            label="Ajouter"
-            color="purple-7"
-          />
-          <q-btn
-            v-if="isEditMode"
-            label="Enregistrer"
-            color="purple-7"
-          />
+          unelevated
+          rounded
+          color="purple-7"
+          label="Ajouter"
+          @click="addQuestion(newQuestion.Name, newQuestion.idQuizz)"
+        />
+
         </q-card-actions>
       </q-card>
     </q-dialog>
 
-    <!-- Tableau des questions ajoutées -->
-    <div class="q-mt-md">
-      <q-table
-        flat
-        bordered
-        :rows="questions"
-        :columns="tableColumns"
-        :loading="loading"
-        row-key="__rowKey"
-        color="purple-7"
-        card-class=""
-        table-class=""
-        table-header-class="bg-purple-1"
-      >
-        <template #body-cell-Num="props">
-          <q-td :props="props">
-            {{ props.rowIndex + 1 }}
-          </q-td>
-        </template>
-        <template #body-cell-Nom="props">
-          <q-td :props="props">
-            {{ props.row.question || props.value || '-' }}
-          </q-td>
-        </template>
-        <template #body-cell-reponses="props">
-          <q-td :props="props">
-            <ol style="margin: 0; padding-left: 18px;">
-              <li v-for="(r, i) in props.row.reponses" :key="'ans'+i">{{ r }}</li>
-            </ol>
-          </q-td>
-        </template>
-        <template #body-cell-actions="props">
-          <q-td :props="props">
-            <q-btn
-              icon="edit"
-              color="purple-7"
-              dense
-              flat
-              round
-              size="sm"
-              class="q-mr-xs"
-              :title="'Modifier cette question'"
+    <!-- Dialog pour modifier une question -->
+    <q-dialog v-model="showEditDialog" persistent>
+      <q-card style="min-width: 400px;">
+        <q-card-section class="bg-purple-1 text-purple-10">
+          <div class="text-h6">Modifier une question</div>
+        </q-card-section>
+
+        <q-card-section>
+          <div class="row q-gutter-md">
+            <q-input 
+              v-model="editingQuestion.Name" 
+              rounded 
+              outlined 
+              label="Question" 
+              class="col-11" 
             />
-            <q-btn
-              icon="delete"
-              color="purple-7"
-              dense
-              flat
-              round
-              size="sm"
-              :title="'Supprimer cette question'"
-            />
-          </q-td>
-        </template>
-      </q-table>
-    </div>
-  </div>
+          </div>
+        </q-card-section>
+
+        <q-card-actions align="right">
+          <q-btn unelevated rounded color="purple-7" label="Annuler" v-close-popup />
+          <q-btn
+            unelevated
+            rounded
+            color="purple-7"
+            label="Modifier"
+            @click="editQuestion(editingQuestion.Id, editingQuestion.Name)"
+          />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
+  </q-page>
 </template>
+
 <script setup>
 import { ref, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
 
-// État statique pour l'affichage visuel
-const popup = ref(false)
-const isEditMode = ref(false)
-const editQuestion = ref('Exemple de question')
-const editReponses = ref(['Réponse 1', 'Réponse 2', 'Réponse 3'])
-const loading = ref(false)
+const route = useRoute()
+const showDialog = ref(false)
+const showEditDialog = ref(false)
+const rows = ref([])
+const editingQuestion = ref({
+  Id: null,
+  Name: ''
+})
+const quizzOptions = ref([])
 
-// Données pour le tableau (chargées depuis l'API)
-const questions = ref([])
+// Récupérer l'ID du quiz depuis l'URL
+const idQuizz = ref(null)
 
-// Fonction pour charger les questions depuis l'API
+// Colonnes du tableau
+const columns = [
+  { name: 'Numero', label: 'Numéro', align: 'left', field: 'Numero' },
+  { name: 'Nom', label: 'Nom', align: 'left', field: 'Nom' },
+  {
+    name: 'action',
+    label: 'Actions',
+    align: 'center',
+    style: 'width: 120px; max-width: 120px;',
+    headerStyle: 'width: 120px; max-width: 120px;'
+  }
+]
+
 async function loadQuestions() {
-  loading.value = true
   try {
-    const response = await fetch('http://10.0.52.211/success/api.php/question')
-    if (!response.ok) {
-      throw new Error(`Erreur HTTP: ${response.status}`)
-    }
+    // Récupérer l'ID depuis l'URL ou utiliser une valeur par défaut
+    const quizzId = idQuizz.value
+    const response = await fetch(`http://10.0.52.142/success/api.php/show_question/${quizzId}`)
+    if (!response.ok) throw new Error('Erreur HTTP ' + response.status)
+
     const data = await response.json()
 
-    // Transformer les données de l'API pour correspondre au format attendu
-    let questionsData = []
-
-    if (Array.isArray(data)) {
-      questionsData = data
-    } else if (data.questions && Array.isArray(data.questions)) {
-      questionsData = data.questions
-    } else if (data.data && Array.isArray(data.data)) {
-      questionsData = data.data
-    } else {
-      questions.value = []
-      loading.value = false
-      return
-    }
-
-    // Mapper les données selon la structure de la base de données
-    // Question table: idQuestion, name, idQuizz
-    // Answer table: idAnswer, name, isCorrect, idQuestion
-    questions.value = questionsData.map((item, index) => {
-      // Récupérer le texte de la question
-      const questionText = item.name || item.question || item.texte || item.nom || item.libelle || ''
-
-      // Récupérer les réponses (peuvent être dans différents formats)
-      let reponses = []
-      if (item.answers && Array.isArray(item.answers)) {
-        reponses = item.answers.map(ans => ans.name || ans.text || ans.texte || ans)
-      } else if (item.reponses && Array.isArray(item.reponses)) {
-        reponses = item.reponses.map(rep => rep.name || rep.text || rep.texte || rep)
-      } else if (item.Answer && Array.isArray(item.Answer)) {
-        reponses = item.Answer.map(ans => ans.name || ans.text || ans.texte || ans)
-      } else if (Array.isArray(item.reponse)) {
-        reponses = item.reponse.map(rep => rep.name || rep.text || rep.texte || rep)
-      }
-
-      return {
-        __rowKey: item.idQuestion || item.id || item.ID || index + 1,
-        question: questionText,
-        reponses: reponses
-      }
-    })
-  } catch {
-    // En cas d'erreur, on garde un tableau vide ou on affiche un message
-    questions.value = []
-  } finally {
-    loading.value = false
+    // Adapter les données aux colonnes du tableau
+    rows.value = data.map((item) => ({
+      Id: item.idQuestion,
+      Numero: item.idQuestion,
+      Nom: item.name,
+    }))
+  } catch (error) {
+    console.error('Erreur lors du chargement des questions:', error)
+    rows.value = []
   }
 }
 
-// Charger les questions au montage du composant
-onMounted(() => {
-  loadQuestions()
+async function loadQuizz() {
+  try {
+    const response = await fetch('http://10.0.52.142/success/api.php/show_quizz')
+    if (!response.ok) throw new Error('Erreur HTTP ' + response.status)
+    
+    const data = await response.json()
+    quizzOptions.value = data.map(q => ({ label: q.name, value: q.idQuizz }))
+  } catch (error) {
+    console.error('Erreur lors du chargement des questionnaires:', error)
+    quizzOptions.value = []
+  }
+}
+
+// Nouvelle question
+const newQuestion = ref({
+  Name: '',
+  idQuizz: null
 })
 
-// Colonnes du q-table
-const tableColumns = [
-  {
-    name: 'Num',
-    required: true,
-    label: 'Num',
-    align: 'left',
-    field: () => null,
-    sortable: false
-  },
-  {
-    name: 'Nom',
-    required: true,
-    label: 'Nom',
-    align: 'left',
-    field: row => row.question,
-    sortable: false
-  },
-  {
-    name: 'reponses',
-    required: true,
-    label: 'Réponses',
-    align: 'left',
-    field: row => row.reponses,
-    sortable: false
-  },
-  {
-    name: 'actions',
-    required: true,
-    label: 'Actions',
-    align: 'left',
-    field: () => null,
-    sortable: false
+function openAddDialog() {
+  newQuestion.value.Name = ''
+  newQuestion.value.idQuizz = null
+  showDialog.value = true
+}
+
+async function addQuestion(name, idQuizz) {
+  if (!idQuizz) {
+    alert('Veuillez sélectionner un questionnaire')
+    return
   }
-]
+
+  const response = await fetch("http://10.0.52.142/success/api.php/add_question", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      name: name,
+      idQuizz: idQuizz
+    })
+  });
+
+  if (!response.ok) {
+    throw new Error("Erreur API " + response.status);
+  }
+
+  const data = await response.json();
+
+  if (data.status === "success") {
+    showDialog.value = false
+    await loadQuestions()
+  }
+
+  return data;
+}
+
+async function editQuestion(id, name) {
+  const response = await fetch("http://10.0.52.142/success/api.php/edit_question", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      idQuestion: id,
+      name: name
+    })
+  });
+
+  if (!response.ok) {
+    throw new Error("Erreur API " + response.status);
+  }
+
+  const data = await response.json();
+
+  if (data.status === "success") {
+    showEditDialog.value = false
+    await loadQuestions()
+  }
+
+  return data;
+}
+
+function editRow(row) {
+  editingQuestion.value = {
+    Id: row.Id,
+    Name: row.Nom
+  }
+  showEditDialog.value = true
+}
+
+async function deleteRow(row) {
+  const response = await fetch('http://10.0.52.142/success/api.php/del_question', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ idQuestion: row.Id })
+  });
+  if (!response.ok) throw new Error('Erreur HTTP ' + response.status);
+
+  const data = await response.json();
+
+  if (data.status === 'success') {
+    await loadQuestions();
+  }
+}
+
+// Chargement depuis l'API
+onMounted(async () => {
+  // Récupérer l'ID depuis les paramètres de l'URL
+  idQuizz.value = route.query.idQuizz || null
+  
+  await loadQuizz()
+  
+  // Si un ID est présent dans l'URL, pré-remplir le formulaire
+  if (idQuizz.value) {
+    newQuestion.value.idQuizz = parseInt(idQuizz.value)
+  }
+  
+  await loadQuestions()
+})
 </script>
 
 <style scoped>
 .text-purple-12 {
   color: var(--q-color-purple-12);
+}
+.bg-rose {
+  background-color: #FFF4FF;
 }
 </style>
