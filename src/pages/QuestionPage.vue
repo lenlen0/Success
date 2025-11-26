@@ -62,14 +62,49 @@
 
         <q-card-section>
           <div class="row q-gutter-md">
-            <q-input 
-              v-model="editingQuestion.Name" 
-              rounded 
-              outlined 
-              label="Question" 
-              class="col-11" 
+            <q-input
+              v-model="editingQuestion.Name"
+              rounded
+              outlined
+              label="Question"
+              class="col-11"
             />
+            <!-- Liste dynamique de réponses -->
+              <div v-for="(ans, index) in answers" :key="index" class="row">
+
+                <q-input
+                  v-model="ans.name"
+                  rounded
+                  outlined
+                  :label="'Réponse ' + (index + 1)"
+                  class="col-11"
+                />
+
+                <q-toggle
+                  v-model="ans.isCorrect"
+                  :label="'Bonne réponse ?'"
+                  color="purple-7"
+                />
+
+                <q-btn
+                  dense
+                  flat
+                  color="red"
+                  icon="delete_outline"
+                  v-if="answers.length > 1"
+                  @click="removeAnswer(index)"
+                />
+              </div>
+              <q-btn
+                unelevated
+                rounded
+                color="purple-7"
+                icon="add"
+                label="Ajouter une réponse"
+                @click="addAnswer"
+              />
           </div>
+
         </q-card-section>
 
         <q-card-actions align="right">
@@ -99,6 +134,25 @@ const editingQuestion = ref({
   Id: null,
   Name: ''
 })
+
+const answers = ref([
+  {
+    name: '',
+    isCorrect: false
+  }
+])
+
+const addAnswer = () => {
+  answers.value.push({
+    name: '',
+    isCorrect: false
+  })
+}
+
+const removeAnswer = (index) => {
+  answers.value.splice(index, 1)
+}
+
 const quizzOptions = ref([])
 
 // Récupérer l'ID du quiz depuis l'URL
@@ -142,7 +196,7 @@ async function loadQuizz() {
   try {
     const response = await fetch('http://10.0.52.142/success/api.php/show_quizz')
     if (!response.ok) throw new Error('Erreur HTTP ' + response.status)
-    
+
     const data = await response.json()
     quizzOptions.value = data.map(q => ({ label: q.name, value: q.idQuizz }))
   } catch (error) {
@@ -245,14 +299,14 @@ async function deleteRow(row) {
 onMounted(async () => {
   // Récupérer l'ID depuis les paramètres de l'URL
   idQuizz.value = route.query.idQuizz || null
-  
+
   await loadQuizz()
-  
+
   // Si un ID est présent dans l'URL, pré-remplir le formulaire
   if (idQuizz.value) {
     newQuestion.value.idQuizz = parseInt(idQuizz.value)
   }
-  
+
   await loadQuestions()
 })
 </script>
