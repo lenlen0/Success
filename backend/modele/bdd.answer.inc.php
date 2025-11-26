@@ -9,8 +9,8 @@ class Answer extends ConnexionPDO {
             $req = $this->conn->prepare("INSERT INTO Answer (name, isCorrect, idQuestion)
                 VALUES (:name, :isCorrect, :idQuestion)");
             $req->bindValue(':name', $name, PDO::PARAM_STR);
-            $req->bindValue(':isCorrect', $status, PDO::PARAM_INT);
-            $req->bindValue(':idQuestion', $code, PDO::PARAM_INT);
+            $req->bindValue(':isCorrect', $isCorrect, PDO::PARAM_INT);
+            $req->bindValue(':idQuestion', $idQuestion, PDO::PARAM_INT);
             $resultat = $req->execute();
         } catch (PDOException $e) {
             die($e->getMessage());
