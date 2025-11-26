@@ -62,6 +62,7 @@
 
         <q-card-section>
           <div class="row q-gutter-md">
+            <!-- editingQuestion.Id -->
             <q-input
               v-model="editingQuestion.Name"
               rounded
@@ -114,7 +115,7 @@
             rounded
             color="purple-7"
             label="Modifier"
-            @click="editQuestion(editingQuestion.Id, editingQuestion.Name)"
+            @click="editHub(editingQuestion.Id, editingQuestion.Name)"
           />
         </q-card-actions>
       </q-card>
@@ -130,6 +131,7 @@ const route = useRoute()
 const showDialog = ref(false)
 const showEditDialog = ref(false)
 const rows = ref([])
+const answers_rows = ref([])
 const editingQuestion = ref({
   Id: null,
   Name: ''
@@ -192,6 +194,24 @@ async function loadQuestions() {
   }
 }
 
+async function loadAnswers(idQuestion) {
+  try {
+    // Récupérer l'ID depuis l'URL ou utiliser une valeur par défaut
+    const response = await fetch(`http://10.0.52.142/success/api.php/show_answer/${idQuestion}`)
+    if (!response.ok) throw new Error('Erreur HTTP ' + response.status)
+
+    const data = await response.json()
+
+    answers.value = data.map(a => ({
+      name: a.name,
+      isCorrect: a.isCorrect == 1 ? true : false
+    }))
+  } catch (error) {
+    console.error('Erreur lors du chargement des questions:', error)
+    rows.value = []
+  }
+}
+
 async function loadQuizz() {
   try {
     const response = await fetch('http://10.0.52.142/success/api.php/show_quizz')
@@ -218,7 +238,6 @@ function openAddDialog() {
 }
 
 async function addQuestion(name) {
-
   const response = await fetch("http://10.0.52.142/success/api.php/add_question", {
     method: "POST",
     headers: {
@@ -244,30 +263,75 @@ async function addQuestion(name) {
   return data;
 }
 
-async function editQuestion(id, name) {
-  const response = await fetch("http://10.0.52.142/success/api.php/edit_question", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      idQuestion: id,
-      name: name
-    })
-  });
+async function editHub(id, name) {
+  try {
+    const response = await fetch(`http://10.0.52.142/success/api.php/tablequestion/${id}`)
+    if (!response.ok) throw new Error('Erreur HTTP ' + response.status)
 
-  if (!response.ok) {
-    throw new Error("Erreur API " + response.status);
+      const data = await response.json();
+      if(data[0].name === name) {
+        // edit Question sans modification question
+        await addAnswers(id);
+      } else {
+        //EditUser modification mdp
+        await editQuestion(id, name);
+      }
+
+    } catch (err) {
+      console.error('Impossible de charger les utilisateurs :', err)
+    }
+}
+
+async function editQuestion(idQuestion, name) {
+  try {
+    const response = await fetch("http://10.0.52.142/success/api.php/edit_question", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        idQuestion: idQuestion,
+        name: name
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error("Erreur API " + response.status);
+    }
+
+    const data = await response.json();
+    console.log("Question modifié :", data);
+
+    if (data.status === "success") {
+      await addAnswers(idQuestion);
+    }
+
+    return data;
+
+  } catch (err) {
+    console.error("Erreur", err);
   }
+}
 
-  const data = await response.json();
+async function addAnswers(idQuestion) {
+  try {
+    for (const ans of answers.value) {
+      await fetch("http://10.0.52.142/success/api.php/add_answer", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          name: ans.name,
+          isCorrect: ans.isCorrect ? 1 : 0,
+          idQuestion: idQuestion
+        })
+      })
+    }
 
-  if (data.status === "success") {
-    showEditDialog.value = false
-    await loadQuestions()
+  } catch (err) {
+    console.error("Erreur", err);
   }
-
-  return data;
 }
 
 function editRow(row) {
@@ -275,6 +339,7 @@ function editRow(row) {
     Id: row.Id,
     Name: row.Nom
   }
+  loadAnswers(row.Id)
   showEditDialog.value = true
 }
 
