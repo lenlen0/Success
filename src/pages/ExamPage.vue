@@ -59,13 +59,13 @@
             >
               <template v-slot:append>
                 <q-btn 
-                    v-if="!isEditing"
-                    icon="refresh" 
-                    round 
-                    flat 
-                    dense 
-                    @click="generateAndSetCode" 
-                    color="purple-7" 
+                  v-if="!isEditing"
+                  icon="refresh" 
+                  round 
+                  flat 
+                  dense 
+                  @click="generateAndSetCode" 
+                  color="purple-7" 
                 />
               </template>
             </q-input>
@@ -83,7 +83,7 @@
             <q-select
               rounded outlined
               v-model="currentEval.status"
-              :options="['En cours', 'Fermer', 'Entrainement']"
+              :options="['En cours', 'Ferme', 'Entrainement']"
               label="Status"
               class="col-11"
             />
@@ -300,7 +300,6 @@ async function addEval(payload) {
 
 async function updateEval(payload) {
     try {
-        // Si vous avez utilisé 'edit_exam' comme dans votre dernier message, veuillez le modifier vous-même pour utiliser le nom de la route fonctionnelle.
         const res = await fetch('http://10.0.52.142/success/api.php/edit_exam', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -393,11 +392,6 @@ function openEditDialog(row) {
 async function deleteRow(row) {
     if (!row.idExam) {
         console.error("Erreur: L'ID de l'examen est manquant pour la suppression.");
-        return;
-    }
-
-    // Le confirm reste car c'est la seule protection contre la suppression accidentelle
-    if (!confirm(`Êtes-vous sûr de vouloir supprimer l'évaluation "${row.nom}" (ID: ${row.idExam}) ?`)) {
         return;
     }
 
