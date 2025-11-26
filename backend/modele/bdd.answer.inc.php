@@ -31,6 +31,30 @@ class Answer extends ConnexionPDO {
         }
         return $resultat;
     }
+
+    public function deleteAnswer($idAnswer) {
+        try {
+            $req = $this->conn->prepare("DELETE FROM Answer WHERE idAnswer = :idAnswer");
+            $req->bindValue(':idAnswer', $idAnswer, PDO::PARAM_INT);
+            $resultat = $req->execute();
+        } catch (PDOException $e) {
+            die($e->getMessage());
+        }
+        return $resultat;
+    }
+
+    public function editAnswer($idAnswer, $name, $isCorrect) {
+        try {
+            $req = $this->conn->prepare("UPDATE Answer SET name = :name, isCorrect = :isCorrect WHERE idAnswer = :idAnswer");
+            $req->bindValue(':idAnswer', $idAnswer, PDO::PARAM_INT);
+            $req->bindValue(':name', $name, PDO::PARAM_STR);
+            $req->bindValue(':isCorrect', $isCorrect, PDO::PARAM_INT);
+            $resultat = $req->execute();
+        } catch (PDOException $e) {
+            die($e->getMessage());
+        }
+        return $resultat;
+    }
 }
 
 ?>

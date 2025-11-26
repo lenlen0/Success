@@ -279,6 +279,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             echo json_encode(["status" => "success"], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
             exit;
 
+        case 'edit_answer':
+            if (empty($data['idAnswer']) || empty($data['name']) || empty($data['isCorrect'])) {
+                http_response_code(422);
+                echo json_encode(["status" => "error", "message" => "Champs 'idAnswer', 'name' et 'isCorrect' requis."]);
+                exit;
+            }
+
+            $EditAnswer = $Answer->editAnswer($data['idAnswer'], $data['name'], $data['isCorrect']);
+
+            if (!$EditAnswer) {
+                http_response_code(500);
+                echo json_encode(["status" => "error"]);
+                exit;
+            }
+
+            echo json_encode(["status" => "success"], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+            exit;
+
         case 'del_user':
             if (empty($data['id_s11'])) {
                 http_response_code(422);
@@ -362,6 +380,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $delQuestion = $Question->deleteQuestion($data['idQuestion']);
 
             if (!$delQuestion) {
+                http_response_code(500);
+                echo json_encode(["status" => "error"]);
+                exit;
+            }
+
+            echo json_encode(["status" => "success"], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+            exit;
+
+        case 'del_answer':
+            if (empty($data['idAnswer'])) {
+                http_response_code(422);
+                echo json_encode(["status" => "error", "message" => "Champs 'idAnswer' requis pour la supression."]);
+                exit;
+            }
+
+            $delAnswer = $Answer->deleteAnswer($data['idAnswer']);
+
+            if (!$delAnswer) {
                 http_response_code(500);
                 echo json_encode(["status" => "error"]);
                 exit;
