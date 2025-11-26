@@ -280,7 +280,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             exit;
 
         case 'edit_answer':
-            if (empty($data['idAnswer']) || empty($data['name']) || empty($data['isCorrect'])) {
+            if (empty($data['idAnswer']) || empty($data['name'])) {
                 http_response_code(422);
                 echo json_encode(["status" => "error", "message" => "Champs 'idAnswer', 'name' et 'isCorrect' requis."]);
                 exit;
