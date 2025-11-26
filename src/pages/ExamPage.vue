@@ -291,7 +291,6 @@ async function addEval(payload) {
         throw new Error(`Erreur API ${res.status}: ${responseData.message || 'Détails inconnus.'}`)
     }
     
-    // Message de succès retiré
     
   } catch (err) {
     throw new Error(`Échec de l'ajout : ${err.message}`)
