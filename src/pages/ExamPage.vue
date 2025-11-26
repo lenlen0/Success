@@ -300,7 +300,6 @@ async function addEval(payload) {
 
 async function updateEval(payload) {
     try {
-        // NOTE: J'ai rétabli 'update_exam' qui était dans votre code original pour ne pas casser la partie qui fonctionne si l'API a été corrigée.
         // Si vous avez utilisé 'edit_exam' comme dans votre dernier message, veuillez le modifier vous-même pour utiliser le nom de la route fonctionnelle.
         const res = await fetch('http://10.0.52.142/success/api.php/edit_exam', {
             method: 'POST',
