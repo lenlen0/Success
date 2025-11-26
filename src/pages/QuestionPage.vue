@@ -131,7 +131,6 @@ const route = useRoute()
 const showDialog = ref(false)
 const showEditDialog = ref(false)
 const rows = ref([])
-const answers_rows = ref([])
 const editingQuestion = ref({
   Id: null,
   Name: ''
@@ -195,8 +194,9 @@ async function loadQuestions() {
 }
 
 async function loadAnswers(idQuestion) {
+  answers.value = []
+
   try {
-    // Récupérer l'ID depuis l'URL ou utiliser une valeur par défaut
     const response = await fetch(`http://10.0.52.142/success/api.php/show_answer/${idQuestion}`)
     if (!response.ok) throw new Error('Erreur HTTP ' + response.status)
 
@@ -204,13 +204,15 @@ async function loadAnswers(idQuestion) {
 
     answers.value = data.map(a => ({
       name: a.name,
-      isCorrect: a.isCorrect == 1 ? true : false
+      isCorrect: a.isCorrect == 1
     }))
+
   } catch (error) {
-    console.error('Erreur lors du chargement des questions:', error)
-    rows.value = []
+    console.error('Erreur lors du chargement des réponses:', error)
+    answers.value = []
   }
 }
+
 
 async function loadQuizz() {
   try {
@@ -264,23 +266,16 @@ async function addQuestion(name) {
 }
 
 async function editHub(id, name) {
-  try {
-    const response = await fetch(`http://10.0.52.142/success/api.php/tablequestion/${id}`)
-    if (!response.ok) throw new Error('Erreur HTTP ' + response.status)
+  await editQuestion(id, name)
 
-      const data = await response.json();
-      if(data[0].name === name) {
-        // edit Question sans modification question
-        await addAnswers(id);
-      } else {
-        //EditUser modification mdp
-        await editQuestion(id, name);
-      }
+  await deleteAnswersByIdQuestion(id)
 
-    } catch (err) {
-      console.error('Impossible de charger les utilisateurs :', err)
-    }
+  await addAnswers(id)
+
+  showEditDialog.value = false
+  await loadQuestions()
 }
+
 
 async function editQuestion(idQuestion, name) {
   try {
@@ -302,11 +297,30 @@ async function editQuestion(idQuestion, name) {
     const data = await response.json();
     console.log("Question modifié :", data);
 
-    if (data.status === "success") {
-      await addAnswers(idQuestion);
+  } catch (err) {
+    console.error("Erreur", err);
+  }
+}
+
+
+async function deleteAnswersByIdQuestion(idQuestion) {
+  try {
+    const response = await fetch("http://10.0.52.142/success/api.php/del_answer_by_idquestion", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        idQuestion: idQuestion
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error("Erreur API " + response.status);
     }
 
-    return data;
+    const data = await response.json();
+    console.log("Anciennes réponses supprimée :", data);
 
   } catch (err) {
     console.error("Erreur", err);
@@ -335,13 +349,20 @@ async function addAnswers(idQuestion) {
 }
 
 function editRow(row) {
+  answers.value = [{
+    name: '',
+    isCorrect: false
+  }]
+
   editingQuestion.value = {
     Id: row.Id,
     Name: row.Nom
   }
+
   loadAnswers(row.Id)
   showEditDialog.value = true
 }
+
 
 async function deleteRow(row) {
   const response = await fetch('http://10.0.52.142/success/api.php/del_question', {

@@ -406,6 +406,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             echo json_encode(["status" => "success"], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
             exit;
 
+        case 'del_answer_by_idquestion':
+            if (empty($data['idQuestion'])) {
+                http_response_code(422);
+                echo json_encode(["status" => "error", "message" => "Champs 'idQuestion' requis pour la supression."]);
+                exit;
+            }
+
+            $delAnswer2 = $Answer->deleteAnswerByidQuestion($data['idQuestion']);
+
+            if (!$delAnswer2) {
+                http_response_code(500);
+                echo json_encode(["status" => "error"]);
+                exit;
+            }
+
+            echo json_encode(["status" => "success"], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+            exit;
+
         default:
             http_response_code(404);
             echo json_encode(["error" => "Ressource '$resource' introuvable"]);

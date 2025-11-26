@@ -55,6 +55,17 @@ class Answer extends ConnexionPDO {
         }
         return $resultat;
     }
+
+    public function deleteAnswerByidQuestion($idQuestion) {
+        try {
+            $req = $this->conn->prepare("DELETE FROM Answer WHERE idQuestion = :idQuestion");
+            $req->bindValue(':idQuestion', $idQuestion, PDO::PARAM_INT);
+            $resultat = $req->execute();
+        } catch (PDOException $e) {
+            die($e->getMessage());
+        }
+        return $resultat;
+    }
 }
 
 ?>
