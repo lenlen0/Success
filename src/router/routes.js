@@ -63,6 +63,14 @@ const routes = [
     ]
  },
 
+ {
+    path: '/Pexam',
+    component: () => import('layouts/UserLayout.vue'),
+    children: [
+      { path: '', component: () => import('pages/Pexam.vue') }
+    ]
+  },
+
   {
     path: '/:catchAll(.*)*',
     component: () => import('pages/ErrorNotFound.vue')
