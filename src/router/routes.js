@@ -64,6 +64,14 @@ const routes = [
  },
 
   {
+    path: '/Accueil',
+    component: () => import('layouts/AdminLayout.vue'),
+    children: [
+      { path: '', component: () => import('pages/AccueilPage.vue') }
+    ]
+ },
+
+  {
     path: '/:catchAll(.*)*',
     component: () => import('pages/ErrorNotFound.vue')
   }
