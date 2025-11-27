@@ -207,7 +207,9 @@
         <q-card-section class="bg-purple-1 text-purple-10">
           <div class="text-h6">Générer des réponses</div>
         </q-card-section>
-          <q-input v-model="genIAResponse.nb_answer" rounded outlined label="Nombres de réponses" class="col-11" />
+          <div class="row q-gutter-md">
+            <q-input v-model="genIAResponse.nb_answer" rounded outlined label="Nombres de réponses" class="col-11" />
+          </div>
         <q-card-section>
 
         </q-card-section>
