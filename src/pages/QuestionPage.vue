@@ -6,6 +6,7 @@
 
       <!-- Bouton pour ouvrir le dialog -->
       <q-btn round color="purple-7" icon="add" style="margin: 8px" @click="openAddDialog" />
+      <q-btn round color="purple-7" icon="smart_toy" />
       <br /><br />
 
       <!-- Tableau Quasar -->

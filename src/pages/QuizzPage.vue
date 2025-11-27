@@ -5,7 +5,6 @@
       <h1 class="text-h4 text-purple-12">Questionnaires</h1>
 
       <q-btn round color="purple-7" icon="add" style="margin: 8px" @click="openAddDialog" />
-      <q-btn round color="purple-7" icon="smart_toy" />
       <br/><br/>
 
       <div class="table-responsive-wrapper">
