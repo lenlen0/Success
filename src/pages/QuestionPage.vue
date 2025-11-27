@@ -218,7 +218,7 @@
           unelevated
           rounded
           color="purple-7"
-          label="Accepter et ajouter"
+          label="Ajouter"
         />
         </q-card-actions>
       </q-card>
@@ -253,7 +253,7 @@
         <q-card-actions align="right">
           <q-btn unelevated rounded color="purple-7" label="Annuler" v-close-popup />
           <q-btn
-          @click="addQuestionByIA"
+          @click="addResponseByIA"
           unelevated
           rounded
           color="purple-7"
@@ -326,25 +326,61 @@ const IAHub = async () => {
   );
 };
 
+async function addResponseByIA() {
+  const cleanData = responses_rows.value.map(row => ({
+    name: row.name,
+    isCorrect: row.isCorrect,
+    idQuestion: row.idQuestion
+  }));
+
+  try {
+    for (const q of cleanData) {
+      const response = await fetch("http://10.0.52.142/success/api.php/add_answer", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(q)
+      });
+
+      if (!response.ok) {
+        throw new Error("Erreur API " + response.status);
+      }
+
+      const data = await response.json();
+
+      if (data.status !== "success") {
+        console.error("Erreur ajout d'une réponse :", data);
+      }
+    }
+
+    showResponseIAResult.value = false;
+    await loadQuestions();
+
+  } catch (error) {
+    console.error("Erreur lors de l'ajout des réponses par IA :", error);
+    console.log("Données envoyées :", cleanData);
+  }
+}
+
 async function askGeminiForAnswers(nb_answer) {
   const questions = rows.value.map(q => ({
     idQuestion: q.Numero,
     name: q.Nom
   }));
 
-  const prompt = `Génère moi ${nb_answer} réponses par question. Prend également en compte qu'une seule réponse doit être correcte
-   Pour cela voici ci-dessous les questions :
+  const prompt = `Génère moi ${nb_answer} réponses par question. Une seule doit être correcte.
 
-${questions.map(q => `- (${q.Numero}) ${q.name}`).join("\n")}
+Voici les questions avec leurs ID réels :
 
-Pour chaques réponses le format devra impérativement être le suivant :
+${questions.map(q => `- ID ${q.idQuestion} : ${q.name}`).join("\n")}
 
 Réponds uniquement en JSON strictement valide.
-Format obligatoire :
+Pour chaque question, renvoie ${nb_answer} objets au format :
 
 {
-  "name": "reponse",
-  "isCorrect": "valeur_iscorrect",
+  "name": "texte de la réponse",
+  "isCorrect": 0 ou 1,
   "idQuestion": ID_DE_LA_QUESTION
 }
 
@@ -352,9 +388,6 @@ IMPORTANT :
 - "idQuestion" doit être EXACTEMENT l'ID donné ci-dessus.
 - NE PAS réindexer les ID.
 - NE PAS créer de numérotation automatique.
-
-Remplace "reponse" par une réponse.
-Remplace "valeur_iscorrect" par un 1 si la réponse est correcte, ou un 0 si la réponse n'est pas la bonne.
 `;
 
   const body = {
