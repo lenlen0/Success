@@ -245,7 +245,7 @@
               row-key="Id"
             >
             <template v-slot:body-cell-action="props">
-              <q-btn flat color="purple-7" icon="delete_outline" @click="deleteTempRow(props.row)"/>
+              <q-btn flat color="purple-7" icon="delete_outline" @click="deleteResponseRow(props.row)"/>
             </template>
           </q-table>
           </div>
@@ -441,6 +441,21 @@ function deleteTempRow(row) {
     temp_rows.value.splice(index, 1);
   }
   console.log(temp_rows)
+}
+
+function deleteResponseRow(row) {
+  const index = responses_rows.value.findIndex(
+    r =>
+      r.name === row.name &&
+      r.isCorrect === row.isCorrect &&
+      r.idQuestion === row.idQuestion
+  );
+
+  if (index !== -1) {
+    responses_rows.value.splice(index, 1);
+  }
+
+  console.log("Réponses IA après suppression :", responses_rows.value);
 }
 
 
