@@ -63,13 +63,13 @@ const routes = [
     ]
  },
 
-  {
-    path: '/Accueil',
-    component: () => import('layouts/AdminLayout.vue'),
+ {
+    path: '/Pexam',
+    component: () => import('layouts/UserLayout.vue'),
     children: [
-      { path: '', component: () => import('pages/AccueilPage.vue') }
+      { path: '', component: () => import('pages/Pexam.vue') }
     ]
- },
+  },
 
   {
     path: '/:catchAll(.*)*',
