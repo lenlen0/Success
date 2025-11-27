@@ -62,14 +62,50 @@
 
         <q-card-section>
           <div class="row q-gutter-md">
-            <q-input 
-              v-model="editingQuestion.Name" 
-              rounded 
-              outlined 
-              label="Question" 
-              class="col-11" 
+            <!-- editingQuestion.Id -->
+            <q-input
+              v-model="editingQuestion.Name"
+              rounded
+              outlined
+              label="Question"
+              class="col-11"
             />
+            <!-- Liste dynamique de réponses -->
+              <div v-for="(ans, index) in answers" :key="index" class="row">
+
+                <q-input
+                  v-model="ans.name"
+                  rounded
+                  outlined
+                  :label="'Réponse ' + (index + 1)"
+                  class="col-11"
+                />
+
+                <q-toggle
+                  v-model="ans.isCorrect"
+                  :label="'Bonne réponse ?'"
+                  color="purple-7"
+                />
+
+                <q-btn
+                  dense
+                  flat
+                  color="red"
+                  icon="delete_outline"
+                  v-if="answers.length > 1"
+                  @click="removeAnswer(index)"
+                />
+              </div>
+              <q-btn
+                unelevated
+                rounded
+                color="purple-7"
+                icon="add"
+                label="Ajouter une réponse"
+                @click="addAnswer"
+              />
           </div>
+
         </q-card-section>
 
         <q-card-actions align="right">
@@ -79,7 +115,7 @@
             rounded
             color="purple-7"
             label="Modifier"
-            @click="editQuestion(editingQuestion.Id, editingQuestion.Name)"
+            @click="editHub(editingQuestion.Id, editingQuestion.Name)"
           />
         </q-card-actions>
       </q-card>
@@ -99,6 +135,25 @@ const editingQuestion = ref({
   Id: null,
   Name: ''
 })
+
+const answers = ref([
+  {
+    name: '',
+    isCorrect: false
+  }
+])
+
+const addAnswer = () => {
+  answers.value.push({
+    name: '',
+    isCorrect: false
+  })
+}
+
+const removeAnswer = (index) => {
+  answers.value.splice(index, 1)
+}
+
 const quizzOptions = ref([])
 
 // Récupérer l'ID du quiz depuis l'URL
@@ -138,11 +193,32 @@ async function loadQuestions() {
   }
 }
 
+async function loadAnswers(idQuestion) {
+  answers.value = []
+
+  try {
+    const response = await fetch(`http://10.0.52.142/success/api.php/show_answer/${idQuestion}`)
+    if (!response.ok) throw new Error('Erreur HTTP ' + response.status)
+
+    const data = await response.json()
+
+    answers.value = data.map(a => ({
+      name: a.name,
+      isCorrect: a.isCorrect == 1
+    }))
+
+  } catch (error) {
+    console.error('Erreur lors du chargement des réponses:', error)
+    answers.value = []
+  }
+}
+
+
 async function loadQuizz() {
   try {
     const response = await fetch('http://10.0.52.142/success/api.php/show_quizz')
     if (!response.ok) throw new Error('Erreur HTTP ' + response.status)
-    
+
     const data = await response.json()
     quizzOptions.value = data.map(q => ({ label: q.name, value: q.idQuizz }))
   } catch (error) {
@@ -164,7 +240,6 @@ function openAddDialog() {
 }
 
 async function addQuestion(name) {
-
   const response = await fetch("http://10.0.52.142/success/api.php/add_question", {
     method: "POST",
     headers: {
@@ -190,39 +265,104 @@ async function addQuestion(name) {
   return data;
 }
 
-async function editQuestion(id, name) {
-  const response = await fetch("http://10.0.52.142/success/api.php/edit_question", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      idQuestion: id,
-      name: name
-    })
-  });
+async function editHub(id, name) {
+  await editQuestion(id, name)
 
-  if (!response.ok) {
-    throw new Error("Erreur API " + response.status);
+  await deleteAnswersByIdQuestion(id)
+
+  await addAnswers(id)
+
+  showEditDialog.value = false
+  await loadQuestions()
+}
+
+
+async function editQuestion(idQuestion, name) {
+  try {
+    const response = await fetch("http://10.0.52.142/success/api.php/edit_question", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        idQuestion: idQuestion,
+        name: name
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error("Erreur API " + response.status);
+    }
+
+    const data = await response.json();
+    console.log("Question modifié :", data);
+
+  } catch (err) {
+    console.error("Erreur", err);
   }
+}
 
-  const data = await response.json();
 
-  if (data.status === "success") {
-    showEditDialog.value = false
-    await loadQuestions()
+async function deleteAnswersByIdQuestion(idQuestion) {
+  try {
+    const response = await fetch("http://10.0.52.142/success/api.php/del_answer_by_idquestion", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        idQuestion: idQuestion
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error("Erreur API " + response.status);
+    }
+
+    const data = await response.json();
+    console.log("Anciennes réponses supprimée :", data);
+
+  } catch (err) {
+    console.error("Erreur", err);
   }
+}
 
-  return data;
+async function addAnswers(idQuestion) {
+  try {
+    for (const ans of answers.value) {
+      await fetch("http://10.0.52.142/success/api.php/add_answer", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          name: ans.name,
+          isCorrect: ans.isCorrect ? 1 : 0,
+          idQuestion: idQuestion
+        })
+      })
+    }
+
+  } catch (err) {
+    console.error("Erreur", err);
+  }
 }
 
 function editRow(row) {
+  answers.value = [{
+    name: '',
+    isCorrect: false
+  }]
+
   editingQuestion.value = {
     Id: row.Id,
     Name: row.Nom
   }
+
+  loadAnswers(row.Id)
   showEditDialog.value = true
 }
+
 
 async function deleteRow(row) {
   const response = await fetch('http://10.0.52.142/success/api.php/del_question', {
@@ -245,14 +385,14 @@ async function deleteRow(row) {
 onMounted(async () => {
   // Récupérer l'ID depuis les paramètres de l'URL
   idQuizz.value = route.query.idQuizz || null
-  
+
   await loadQuizz()
-  
+
   // Si un ID est présent dans l'URL, pré-remplir le formulaire
   if (idQuizz.value) {
     newQuestion.value.idQuizz = parseInt(idQuizz.value)
   }
-  
+
   await loadQuestions()
 })
 </script>
