@@ -6,7 +6,7 @@
 
       <!-- Bouton pour ouvrir le dialog -->
       <q-btn round color="purple-7" icon="add" style="margin: 8px" @click="openAddDialog" />
-      <q-btn round color="purple-7" icon="smart_toy" />
+      <q-btn round color="purple-7" icon="smart_toy" @click="openIADialog" />
       <br /><br />
 
       <!-- Tableau Quasar -->
@@ -121,6 +121,85 @@
         </q-card-actions>
       </q-card>
     </q-dialog>
+
+    <!-- Afficher le contenu pour créer une question par IA -->
+    <q-dialog v-model="showIADialog" persistent>
+      <q-card style="min-width: 400px;">
+        <q-card-section class="bg-purple-1 text-purple-10">
+          <div class="text-h6">Générer avec l'IA</div>
+        </q-card-section>
+
+        <q-card-section>
+          <div class="row q-gutter-md">
+            <q-input v-model="newIAGeneration.nb_question" rounded outlined label="Nombres de questions" class="col-11" />
+            <q-input v-model="newIAGeneration.theme" rounded outlined label="Theme" class="col-11" />
+            <q-select
+              v-model="newIAGeneration.difficulty"
+              rounded
+              outlined
+              :options="[
+                { label: 'Facile', value: 'Facile' },
+                { label: 'Intermédiaire', value: 'Intermédiaire' },
+                { label: 'Difficile', value: 'Difficile' }
+              ]"
+              label="Difficulté"
+              class="col-11"
+              emit-value
+              map-options
+            />
+          </div>
+        </q-card-section>
+        <q-card-actions align="right">
+          <q-btn unelevated rounded color="purple-7" label="Annuler" v-close-popup />
+          <q-btn
+          @click="IAHub"
+          unelevated
+          rounded
+          color="purple-7"
+          label="Ajouter"
+        />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
+
+    <!-- Afficher les réponses générer par l'IA-->
+    <q-dialog v-model="showIAResult" persistent>
+      <q-card style="min-width: 1000px;">
+        <q-card-section class="bg-purple-1 text-purple-10">
+          <div class="text-h6">Liste des questions Générées</div>
+        </q-card-section>
+          <div class="row q-gutter-lg flex flex-center">
+            <q-table
+              class="q-mt-xl"
+              flat
+              bordered
+              color="primary"
+              card-class="bg-white"
+              table-header-class="bg-purple-1 text-purple-10"
+              :rows="temp_rows"
+              :columns="temp_columns"
+              row-key="Id"
+            >
+            <template v-slot:body-cell-action="props">
+              <q-btn flat color="purple-7" icon="delete_outline" @click="deleteTempRow(props.row)"/>
+            </template>
+          </q-table>
+          </div>
+        <q-card-section>
+
+        </q-card-section>
+        <q-card-actions align="right">
+          <q-btn unelevated rounded color="purple-7" label="Annuler" v-close-popup />
+          <q-btn
+          unelevated
+          rounded
+          color="purple-7"
+          label="Ajouter"
+        />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
+
   </q-page>
 </template>
 
@@ -128,10 +207,15 @@
 import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 
+const API_Gemini = "AIzaSyAOKd8h6HBLBP2UZRi14XDD2BfSqKz96rk";
+
 const route = useRoute()
 const showDialog = ref(false)
 const showEditDialog = ref(false)
+const showIADialog = ref(false)
+const showIAResult = ref(false)
 const rows = ref([])
+const temp_rows = ref([])
 const editingQuestion = ref({
   Id: null,
   Name: ''
@@ -151,8 +235,33 @@ const addAnswer = () => {
   })
 }
 
+const newIAGeneration = ref({
+  nb_question: '',
+  theme: '',
+  difficulty: null,
+  idQuizz: null
+})
+
+const IAHub = async () => {
+  if (!newIAGeneration.value) {
+    console.error('newIAGeneration est indéfini');
+    return;
+  }
+  newIAGeneration.value.idQuizz = idQuizz.value;
+  await sendToGemini(
+    newIAGeneration.value.nb_question,
+    newIAGeneration.value.theme,
+    newIAGeneration.value.difficulty,
+    newIAGeneration.value.idQuizz
+  );
+};
+
 const removeAnswer = (index) => {
   answers.value.splice(index, 1)
+}
+
+function deleteTempRow(row) {
+  temp_rows.value.splice(row, 1)
 }
 
 const quizzOptions = ref([])
@@ -172,6 +281,73 @@ const columns = [
     headerStyle: 'width: 120px; max-width: 120px;'
   }
 ]
+
+// Colonnes des questions temporaires
+const temp_columns = [
+  { name: 'Question', label: 'Question', align: 'left', field: 'Question' },
+  {
+    name: 'action',
+    label: 'Actions',
+    align: 'center'
+  }
+]
+
+async function sendToGemini(nb_question, theme, difficulty, id) {
+  const prompt = `
+Réalise moi ${nb_question} questions sur le thème suivant : ${theme}. Toutes les questions devront avoir le même niveau de difficulté
+qui est le suivant : ${difficulty}. Pour chaques réponses le format devra impérativement être le suivant :
+Réponds uniquement en JSON strictement valide.
+
+Format obligatoire :
+{
+  "name": "question",
+  "idQuizz": "id",
+}
+
+Remplace "question" par une question.
+Remplace "idQuizz" par un texte correspondant à : ${id}.
+
+Répète autant que necessaire le format JSON obligatoirement en adéquation avec le nombres de questions demandées.
+`
+
+  const body = {
+    contents: [
+      {
+        parts: [{ text: prompt }]
+      }
+    ]
+  }
+
+  const response = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${API_Gemini}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body)
+    }
+  )
+
+  const data = await response.json()
+
+  let rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text || ''
+
+    rawText = rawText
+    .replace(/```json/g, "")
+    .replace(/```/g, "")
+    .trim();
+
+  try {
+    const parsed = JSON.parse(rawText)
+    temp_rows.value = parsed.map((item) => ({
+    idQuizz: item.idQuizz,
+    Question: item.name
+    }))
+    showIADialog.value = false
+    showIAResult.value = true
+  } catch {
+    console.error('Erreur : Réponse non JSON\n', rawText)
+  }
+}
 
 async function loadQuestions() {
   try {
@@ -238,6 +414,14 @@ function openAddDialog() {
   newQuestion.value.Name = ''
   newQuestion.value.idQuizz = null
   showDialog.value = true
+}
+
+function openIADialog() {
+  newIAGeneration.value.nb_question = ''
+  newIAGeneration.value.nb_answer = ''
+  newIAGeneration.value.theme = ''
+  newIAGeneration.value.difficulty = null
+  showIADialog.value = true
 }
 
 async function addQuestion(name) {
