@@ -191,10 +191,11 @@
         <q-card-actions align="right">
           <q-btn unelevated rounded color="purple-7" label="Annuler" v-close-popup />
           <q-btn
+          @click="addQuestionByIA"
           unelevated
           rounded
           color="purple-7"
-          label="Ajouter"
+          label="Accepter et ajouter"
         />
         </q-card-actions>
       </q-card>
@@ -261,8 +262,16 @@ const removeAnswer = (index) => {
 }
 
 function deleteTempRow(row) {
-  temp_rows.value.splice(row, 1)
+  const index = temp_rows.value.findIndex(
+    r => r.IdTemporaire === row.IdTemporaire
+  );
+
+  if (index !== -1) {
+    temp_rows.value.splice(index, 1);
+  }
+  console.log(temp_rows)
 }
+
 
 const quizzOptions = ref([])
 
@@ -284,6 +293,7 @@ const columns = [
 
 // Colonnes des questions temporaires
 const temp_columns = [
+  { name: 'IdTemporaire', label: 'Id Temp', align: 'left', field: 'IdTemporaire' },
   { name: 'Question', label: 'Question', align: 'left', field: 'Question' },
   {
     name: 'action',
@@ -300,12 +310,14 @@ Réponds uniquement en JSON strictement valide.
 
 Format obligatoire :
 {
+  "idTemp": "idT",
   "name": "question",
-  "idQuizz": "id",
+  "idQuizz": "id"
 }
 
 Remplace "question" par une question.
 Remplace "idQuizz" par un texte correspondant à : ${id}.
+Remplace "idT" par un id différent pour chaques questions ayant impérativement la forme suivante : q1 pour la première des questions et ainsi de suite.
 
 Répète autant que necessaire le format JSON obligatoirement en adéquation avec le nombres de questions demandées.
 `
@@ -339,15 +351,54 @@ Répète autant que necessaire le format JSON obligatoirement en adéquation ave
   try {
     const parsed = JSON.parse(rawText)
     temp_rows.value = parsed.map((item) => ({
+    IdTemporaire: item.idTemp,
     idQuizz: item.idQuizz,
     Question: item.name
     }))
     showIADialog.value = false
     showIAResult.value = true
+    console.log(temp_rows)
   } catch {
     console.error('Erreur : Réponse non JSON\n', rawText)
   }
 }
+
+async function addQuestionByIA() {
+  const cleanData = temp_rows.value.map(row => ({
+    name: row.Question,
+    idQuizz: row.idQuizz
+  }));
+
+  try {
+    for (const q of cleanData) {
+      const response = await fetch("http://10.0.52.142/success/api.php/add_question", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(q)
+      });
+
+      if (!response.ok) {
+        throw new Error("Erreur API " + response.status);
+      }
+
+      const data = await response.json();
+
+      if (data.status !== "success") {
+        console.error("Erreur ajout d'une question :", data);
+      }
+    }
+
+    showIAResult.value = false;
+    await loadQuestions();
+
+  } catch (error) {
+    console.error("Erreur lors de l'ajout des questions par IA :", error);
+    console.log("Données envoyées :", cleanData);
+  }
+}
+
 
 async function loadQuestions() {
   try {
