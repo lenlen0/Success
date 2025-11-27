@@ -224,6 +224,45 @@
       </q-card>
     </q-dialog>
 
+    <!-- Afficher les réponses générer par IA-->
+    <q-dialog v-model="showResponseIAResult" persistent>
+      <q-card style="min-width: 1000px;">
+        <q-card-section class="bg-purple-1 text-purple-10">
+          <div class="text-h6">Liste des réponses Générées</div>
+        </q-card-section>
+          <div class="row q-gutter-lg flex flex-center">
+            <q-table
+              class="q-mt-xl"
+              flat
+              bordered
+              color="primary"
+              card-class="bg-white"
+              table-header-class="bg-purple-1 text-purple-10"
+              :rows="responses_rows"
+              :columns="responses_columns"
+              row-key="Id"
+            >
+            <template v-slot:body-cell-action="props">
+              <q-btn flat color="purple-7" icon="delete_outline" @click="deleteTempRow(props.row)"/>
+            </template>
+          </q-table>
+          </div>
+        <q-card-section>
+
+        </q-card-section>
+        <q-card-actions align="right">
+          <q-btn unelevated rounded color="purple-7" label="Annuler" v-close-popup />
+          <q-btn
+          @click="addQuestionByIA"
+          unelevated
+          rounded
+          color="purple-7"
+          label="Accepter et ajouter"
+        />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
+
   </q-page>
 </template>
 
@@ -239,8 +278,10 @@ const showEditDialog = ref(false)
 const showIADialog = ref(false)
 const showIAResult = ref(false)
 const showAskIAResponse = ref(false)
+const showResponseIAResult = ref(false)
 const rows = ref([])
 const temp_rows = ref([])
+const responses_rows = ref([])
 const editingQuestion = ref({
   Id: null,
   Name: ''
@@ -304,13 +345,16 @@ Format obligatoire :
 {
   "name": "reponse",
   "isCorrect": "valeur_iscorrect",
-  "idQuestion": "id"
+  "idQuestion": ID_DE_LA_QUESTION
 }
+
+IMPORTANT :
+- "idQuestion" doit être EXACTEMENT l'ID donné ci-dessus.
+- NE PAS réindexer les ID.
+- NE PAS créer de numérotation automatique.
 
 Remplace "reponse" par une réponse.
 Remplace "valeur_iscorrect" par un 1 si la réponse est correcte, ou un 0 si la réponse n'est pas la bonne.
-Remplace "id" par l'ID de la question concernée.
-
 `;
 
   const body = {
@@ -336,8 +380,14 @@ Remplace "id" par l'ID de la question concernée.
 
   try {
     const parsed = JSON.parse(raw);
-    console.log("Réponses générées :", parsed);
-    return parsed;
+    responses_rows.value = parsed.map((item) => ({
+    name: item.name,
+    isCorrect: item.isCorrect,
+    idQuestion: item.idQuestion
+    }))
+    showAskIAResponse.value = false
+    showResponseIAResult.value = true
+    console.log(responses_rows)
   } catch (err) {
     console.error("Réponse Gemini NON JSON :\n", raw, err);
   }
@@ -381,6 +431,17 @@ const columns = [
 const temp_columns = [
   { name: 'IdTemporaire', label: 'Id Temp', align: 'left', field: 'IdTemporaire' },
   { name: 'Question', label: 'Question', align: 'left', field: 'Question' },
+  {
+    name: 'action',
+    label: 'Actions',
+    align: 'center'
+  }
+]
+
+const responses_columns = [
+  { name: 'name', label: 'Réponses', align: 'left', field: 'name' },
+  { name: 'isCorrect', label: 'Est correcte', align: 'left', field: 'isCorrect' },
+  { name: 'idQuestion', label: 'Id Question', align: 'left', field: 'idQuestion' },
   {
     name: 'action',
     label: 'Actions',
