@@ -6,7 +6,7 @@
 
       <!-- Bouton pour ouvrir le dialog -->
       <q-btn round color="purple-7" icon="add" style="margin: 8px" @click="openAddDialog" />
-      <q-btn round color="purple-7" icon="smart_toy" />
+      <q-btn round color="purple-7" icon="smart_toy" @click="openIADialog" />
       <br /><br />
 
       <!-- Tableau Quasar -->
@@ -121,6 +121,150 @@
         </q-card-actions>
       </q-card>
     </q-dialog>
+
+    <!-- Afficher le contenu pour créer une question par IA -->
+    <q-dialog v-model="showIADialog" persistent>
+      <q-card style="min-width: 400px;">
+        <q-card-section class="bg-purple-1 text-purple-10">
+          <div class="text-h6">Générer avec l'IA</div>
+        </q-card-section>
+
+        <q-card-section>
+          <div class="row q-gutter-md">
+            <q-input v-model="newIAGeneration.nb_question" rounded outlined label="Nombres de questions" class="col-11" />
+            <q-input v-model="newIAGeneration.theme" rounded outlined label="Theme" class="col-11" />
+            <q-select
+              v-model="newIAGeneration.difficulty"
+              rounded
+              outlined
+              :options="[
+                { label: 'Facile', value: 'Facile' },
+                { label: 'Intermédiaire', value: 'Intermédiaire' },
+                { label: 'Difficile', value: 'Difficile' }
+              ]"
+              label="Difficulté"
+              class="col-11"
+              emit-value
+              map-options
+            />
+          </div>
+        </q-card-section>
+        <q-card-actions align="right">
+          <q-btn unelevated rounded color="purple-7" label="Annuler" v-close-popup />
+          <q-btn
+          @click="IAHub"
+          unelevated
+          rounded
+          color="purple-7"
+          label="Ajouter"
+        />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
+
+    <!-- Afficher les réponses générer par l'IA-->
+    <q-dialog v-model="showIAResult" persistent>
+      <q-card style="min-width: 1000px;">
+        <q-card-section class="bg-purple-1 text-purple-10">
+          <div class="text-h6">Liste des questions Générées</div>
+        </q-card-section>
+          <div class="row q-gutter-lg flex flex-center">
+            <q-table
+              class="q-mt-xl"
+              flat
+              bordered
+              color="primary"
+              card-class="bg-white"
+              table-header-class="bg-purple-1 text-purple-10"
+              :rows="temp_rows"
+              :columns="temp_columns"
+              row-key="Id"
+            >
+            <template v-slot:body-cell-action="props">
+              <q-btn flat color="purple-7" icon="delete_outline" @click="deleteTempRow(props.row)"/>
+            </template>
+          </q-table>
+          </div>
+        <q-card-section>
+
+        </q-card-section>
+        <q-card-actions align="right">
+          <q-btn unelevated rounded color="purple-7" label="Annuler" v-close-popup />
+          <q-btn
+          @click="addQuestionByIA"
+          unelevated
+          rounded
+          color="purple-7"
+          label="Accepter et ajouter"
+        />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
+
+    <!-- Afficher la pop-up de demande de nombres de réponses.-->
+    <q-dialog v-model="showAskIAResponse" persistent>
+      <q-card style="min-width: 400px;">
+        <q-card-section class="bg-purple-1 text-purple-10">
+          <div class="text-h6">Générer des réponses</div>
+        </q-card-section>
+          <div class="row q-gutter-md">
+            <q-input v-model="genIAResponse.nb_answer" rounded outlined label="Nombres de réponses" class="col-11" />
+          </div>
+        <q-card-section>
+
+        </q-card-section>
+        <q-card-actions align="right">
+          <q-btn unelevated rounded color="purple-7" label="Annuler" v-close-popup />
+          <q-btn
+          @click="askGeminiForAnswers(genIAResponse.nb_answer)"
+          unelevated
+          rounded
+          color="purple-7"
+          label="Ajouter"
+        />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
+
+    <!-- Afficher les réponses générer par IA-->
+    <q-dialog v-model="showResponseIAResult" persistent>
+      <q-card style="min-width: 1000px;">
+        <q-card-section class="bg-purple-1 text-purple-10">
+          <div class="text-h6">Liste des réponses Générées</div>
+        </q-card-section>
+          <div class="row q-gutter-lg flex flex-center">
+            <q-table
+              class="q-mt-xl"
+              flat
+              bordered
+              color="primary"
+              card-class="bg-white"
+              table-header-class="bg-purple-1 text-purple-10"
+              :rows="responses_rows"
+              :columns="responses_columns"
+              row-key="Id"
+            >
+            <template v-slot:body-cell-action="props">
+              <q-btn flat color="purple-7" icon="delete_outline" @click="deleteTempRow(props.row)"/>
+            </template>
+          </q-table>
+          </div>
+        <q-card-section>
+
+        </q-card-section>
+        <q-card-actions align="right">
+          <q-btn unelevated rounded color="purple-7" label="Annuler" v-close-popup />
+          <q-btn
+          @click="addResponseByIA"
+          unelevated
+          rounded
+          color="purple-7"
+          label="Accepter et ajouter"
+        />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
+
   </q-page>
 </template>
 
@@ -128,10 +272,18 @@
 import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 
+const API_Gemini = "AIzaSyAOKd8h6HBLBP2UZRi14XDD2BfSqKz96rk";
+
 const route = useRoute()
 const showDialog = ref(false)
 const showEditDialog = ref(false)
+const showIADialog = ref(false)
+const showIAResult = ref(false)
+const showAskIAResponse = ref(false)
+const showResponseIAResult = ref(false)
 const rows = ref([])
+const temp_rows = ref([])
+const responses_rows = ref([])
 const editingQuestion = ref({
   Id: null,
   Name: ''
@@ -151,9 +303,146 @@ const addAnswer = () => {
   })
 }
 
+const newIAGeneration = ref({
+  nb_question: '',
+  theme: '',
+  difficulty: null,
+  idQuizz: null
+})
+
+const genIAResponse = ref({
+  nb_answer: ''
+})
+
+const IAHub = async () => {
+  if (!newIAGeneration.value) {
+    console.error('newIAGeneration est indéfini');
+    return;
+  }
+  newIAGeneration.value.idQuizz = idQuizz.value;
+  await sendToGemini(
+    newIAGeneration.value.nb_question,
+    newIAGeneration.value.theme,
+    newIAGeneration.value.difficulty,
+    newIAGeneration.value.idQuizz
+  );
+};
+
+async function addResponseByIA() {
+  const cleanData = responses_rows.value.map(row => ({
+    name: row.name,
+    isCorrect: row.isCorrect,
+    idQuestion: row.idQuestion
+  }));
+
+  try {
+    for (const q of cleanData) {
+      const response = await fetch("http://10.0.52.142/success/api.php/add_answer", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(q)
+      });
+
+      if (!response.ok) {
+        throw new Error("Erreur API " + response.status);
+      }
+
+      const data = await response.json();
+
+      if (data.status !== "success") {
+        console.error("Erreur ajout d'une réponse :", data);
+      }
+    }
+
+    showResponseIAResult.value = false;
+    await loadQuestions();
+
+  } catch (error) {
+    console.error("Erreur lors de l'ajout des réponses par IA :", error);
+    console.log("Données envoyées :", cleanData);
+  }
+}
+
+async function askGeminiForAnswers(nb_answer) {
+  const questions = rows.value.map(q => ({
+    idQuestion: q.Numero,
+    name: q.Nom
+  }));
+
+  const prompt = `Génère moi ${nb_answer} réponses par question. Une seule doit être correcte.
+
+Voici les questions avec leurs ID réels :
+
+${questions.map(q => `- ID ${q.idQuestion} : ${q.name}`).join("\n")}
+
+Réponds uniquement en JSON strictement valide.
+Pour chaque question, renvoie ${nb_answer} objets au format :
+
+{
+  "name": "texte de la réponse",
+  "isCorrect": 0 ou 1,
+  "idQuestion": ID_DE_LA_QUESTION
+}
+
+IMPORTANT :
+- "idQuestion" doit être EXACTEMENT l'ID donné ci-dessus.
+- NE PAS réindexer les ID.
+- NE PAS créer de numérotation automatique.
+`;
+
+  const body = {
+    contents: [
+      { parts: [{ text: prompt }] }
+    ]
+  };
+
+  const response = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${API_Gemini}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body)
+    }
+  );
+
+  const data = await response.json();
+
+  let raw = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+
+  raw = raw.replace(/```json/g, "").replace(/```/g, "").trim();
+
+  try {
+    const parsed = JSON.parse(raw);
+    responses_rows.value = parsed.map((item) => ({
+    name: item.name,
+    isCorrect: item.isCorrect,
+    idQuestion: item.idQuestion
+    }))
+    showAskIAResponse.value = false
+    showResponseIAResult.value = true
+    console.log(responses_rows)
+  } catch (err) {
+    console.error("Réponse Gemini NON JSON :\n", raw, err);
+  }
+}
+
 const removeAnswer = (index) => {
   answers.value.splice(index, 1)
 }
+
+function deleteTempRow(row) {
+  const index = temp_rows.value.findIndex(
+    r => r.IdTemporaire === row.IdTemporaire
+  );
+
+  if (index !== -1) {
+    temp_rows.value.splice(index, 1);
+  }
+  console.log(temp_rows)
+}
+
 
 const quizzOptions = ref([])
 
@@ -172,6 +461,127 @@ const columns = [
     headerStyle: 'width: 120px; max-width: 120px;'
   }
 ]
+
+// Colonnes des questions temporaires
+const temp_columns = [
+  { name: 'IdTemporaire', label: 'Id Temp', align: 'left', field: 'IdTemporaire' },
+  { name: 'Question', label: 'Question', align: 'left', field: 'Question' },
+  {
+    name: 'action',
+    label: 'Actions',
+    align: 'center'
+  }
+]
+
+const responses_columns = [
+  { name: 'name', label: 'Réponses', align: 'left', field: 'name' },
+  { name: 'isCorrect', label: 'Est correcte', align: 'left', field: 'isCorrect' },
+  { name: 'idQuestion', label: 'Id Question', align: 'left', field: 'idQuestion' },
+  {
+    name: 'action',
+    label: 'Actions',
+    align: 'center'
+  }
+]
+
+async function sendToGemini(nb_question, theme, difficulty, id) {
+  const prompt = `
+Réalise moi ${nb_question} questions sur le thème suivant : ${theme}. Toutes les questions devront avoir le même niveau de difficulté
+qui est le suivant : ${difficulty}. Les questions doivent pouvoir être répondu autres que par un oui ou un non. Pour chaques réponses le format devra impérativement être le suivant :
+Réponds uniquement en JSON strictement valide.
+
+Format obligatoire :
+{
+  "idTemp": "idT",
+  "name": "question",
+  "idQuizz": "id"
+}
+
+Remplace "question" par une question.
+Remplace "idQuizz" par un texte correspondant à : ${id}.
+Remplace "idT" par un id différent pour chaques questions ayant impérativement la forme suivante : q1 pour la première des questions et ainsi de suite.
+
+Répète autant que necessaire le format JSON obligatoirement en adéquation avec le nombres de questions demandées.
+`
+
+  const body = {
+    contents: [
+      {
+        parts: [{ text: prompt }]
+      }
+    ]
+  }
+
+  const response = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${API_Gemini}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body)
+    }
+  )
+
+  const data = await response.json()
+
+  let rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text || ''
+
+    rawText = rawText
+    .replace(/```json/g, "")
+    .replace(/```/g, "")
+    .trim();
+
+  try {
+    const parsed = JSON.parse(rawText)
+    temp_rows.value = parsed.map((item) => ({
+    IdTemporaire: item.idTemp,
+    idQuizz: item.idQuizz,
+    Question: item.name
+    }))
+    showIADialog.value = false
+    showIAResult.value = true
+    console.log(temp_rows)
+  } catch {
+    console.error('Erreur : Réponse non JSON\n', rawText)
+  }
+}
+
+async function addQuestionByIA() {
+  const cleanData = temp_rows.value.map(row => ({
+    name: row.Question,
+    idQuizz: row.idQuizz
+  }));
+
+  try {
+    for (const q of cleanData) {
+      const response = await fetch("http://10.0.52.142/success/api.php/add_question", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(q)
+      });
+
+      if (!response.ok) {
+        throw new Error("Erreur API " + response.status);
+      }
+
+      const data = await response.json();
+
+      if (data.status !== "success") {
+        console.error("Erreur ajout d'une question :", data);
+      }
+    }
+
+    showIAResult.value = false;
+    await loadQuestions();
+    showAskIAResponse.value = true;
+
+  } catch (error) {
+    console.error("Erreur lors de l'ajout des questions par IA :", error);
+    console.log("Données envoyées :", cleanData);
+  }
+}
+
 
 async function loadQuestions() {
   try {
@@ -238,6 +648,14 @@ function openAddDialog() {
   newQuestion.value.Name = ''
   newQuestion.value.idQuizz = null
   showDialog.value = true
+}
+
+function openIADialog() {
+  newIAGeneration.value.nb_question = ''
+  newIAGeneration.value.nb_answer = ''
+  newIAGeneration.value.theme = ''
+  newIAGeneration.value.difficulty = null
+  showIADialog.value = true
 }
 
 async function addQuestion(name) {
