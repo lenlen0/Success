@@ -201,6 +201,29 @@
       </q-card>
     </q-dialog>
 
+    <!-- Afficher la pop-up de demande de nombres de réponses.-->
+    <q-dialog v-model="showAskIAResponse" persistent>
+      <q-card style="min-width: 400px;">
+        <q-card-section class="bg-purple-1 text-purple-10">
+          <div class="text-h6">Générer des réponses</div>
+        </q-card-section>
+          <q-input v-model="genIAResponse.nb_answer" rounded outlined label="Nombres de réponses" class="col-11" />
+        <q-card-section>
+
+        </q-card-section>
+        <q-card-actions align="right">
+          <q-btn unelevated rounded color="purple-7" label="Annuler" v-close-popup />
+          <q-btn
+          @click="askGeminiForAnswers(genIAResponse.nb_answer)"
+          unelevated
+          rounded
+          color="purple-7"
+          label="Accepter et ajouter"
+        />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
+
   </q-page>
 </template>
 
@@ -215,6 +238,7 @@ const showDialog = ref(false)
 const showEditDialog = ref(false)
 const showIADialog = ref(false)
 const showIAResult = ref(false)
+const showAskIAResponse = ref(false)
 const rows = ref([])
 const temp_rows = ref([])
 const editingQuestion = ref({
@@ -243,6 +267,10 @@ const newIAGeneration = ref({
   idQuizz: null
 })
 
+const genIAResponse = ref({
+  nb_answer: ''
+})
+
 const IAHub = async () => {
   if (!newIAGeneration.value) {
     console.error('newIAGeneration est indéfini');
@@ -256,6 +284,64 @@ const IAHub = async () => {
     newIAGeneration.value.idQuizz
   );
 };
+
+async function askGeminiForAnswers(nb_answer) {
+  const questions = rows.value.map(q => ({
+    idQuestion: q.Numero,
+    name: q.Nom
+  }));
+
+  const prompt = `Génère moi ${nb_answer} réponses par question. Prend également en compte qu'une seule réponse doit être correcte
+   Pour cela voici ci-dessous les questions :
+
+${questions.map(q => `- (${q.Numero}) ${q.name}`).join("\n")}
+
+Pour chaques réponses le format devra impérativement être le suivant :
+
+Réponds uniquement en JSON strictement valide.
+Format obligatoire :
+
+{
+  "name": "reponse",
+  "isCorrect": "valeur_iscorrect",
+  "idQuestion": "id"
+}
+
+Remplace "reponse" par une réponse.
+Remplace "valeur_iscorrect" par un 1 si la réponse est correcte, ou un 0 si la réponse n'est pas la bonne.
+Remplace "id" par l'ID de la question concernée.
+
+`;
+
+  const body = {
+    contents: [
+      { parts: [{ text: prompt }] }
+    ]
+  };
+
+  const response = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${API_Gemini}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body)
+    }
+  );
+
+  const data = await response.json();
+
+  let raw = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+
+  raw = raw.replace(/```json/g, "").replace(/```/g, "").trim();
+
+  try {
+    const parsed = JSON.parse(raw);
+    console.log("Réponses générées :", parsed);
+    return parsed;
+  } catch (err) {
+    console.error("Réponse Gemini NON JSON :\n", raw, err);
+  }
+}
 
 const removeAnswer = (index) => {
   answers.value.splice(index, 1)
@@ -305,7 +391,7 @@ const temp_columns = [
 async function sendToGemini(nb_question, theme, difficulty, id) {
   const prompt = `
 Réalise moi ${nb_question} questions sur le thème suivant : ${theme}. Toutes les questions devront avoir le même niveau de difficulté
-qui est le suivant : ${difficulty}. Pour chaques réponses le format devra impérativement être le suivant :
+qui est le suivant : ${difficulty}. Les questions doivent pouvoir être répondu autres que par un oui ou un non. Pour chaques réponses le format devra impérativement être le suivant :
 Réponds uniquement en JSON strictement valide.
 
 Format obligatoire :
@@ -392,6 +478,7 @@ async function addQuestionByIA() {
 
     showIAResult.value = false;
     await loadQuestions();
+    showAskIAResponse.value = true;
 
   } catch (error) {
     console.error("Erreur lors de l'ajout des questions par IA :", error);
