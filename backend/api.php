@@ -444,6 +444,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             echo json_encode(["status" => "success"], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
             exit;
 
+        case 'add_user_to_group':
+            if (empty($data['id_s11']) || empty($data['idGroup'])) {
+                http_response_code(422);
+                echo json_encode(["status" => "error", "message" => "Champs 'id_s11' et 'idGroup' requis."]);
+                exit;
+            }
+        
+            $addUserToGroup = $UserGroup->addUserToGroup($data['id_s11'], $data['idGroup']);
+        
+            if (!$addUserToGroup) {
+                http_response_code(500);
+                echo json_encode(["status" => "error"]);
+                exit;
+            }
+        
+            echo json_encode(["status" => "success"], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+            exit;
+        
+        case 'remove_user_from_group':
+            if (empty($data['id_s11']) || empty($data['idGroup'])) {
+                http_response_code(422);
+                echo json_encode(["status" => "error", "message" => "Champs 'id_s11' et 'idGroup' requis."]);
+                exit;
+            }
+        
+            $removeUserFromGroup = $UserGroup->removeUserFromGroup($data['id_s11'], $data['idGroup']);
+        
+            if (!$removeUserFromGroup) {
+                http_response_code(500);
+                echo json_encode(["status" => "error"]);
+                exit;
+            }
+        
+            echo json_encode(["status" => "success"], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+            exit;
+
         default:
             http_response_code(404);
             echo json_encode(["error" => "Ressource '$resource' introuvable"]);

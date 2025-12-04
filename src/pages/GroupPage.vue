@@ -63,13 +63,11 @@
 
         <q-card-section>
           <div class="row q-gutter-md">
-            <q-input 
-              v-model="editingGroup.Name" 
-              rounded 
-              outlined 
-              label="Nom" 
-              class="col-11" 
-            />
+              <div class="row items-center q-gutter-md q-mt-md">
+                <q-btn round color="purple-7" icon="assignment" aria-label="Questions" @click="goToMatchUser"/>
+                <span class="text-body2">Gérer les utilisateurs</span>
+              </div>
+            <q-input v-model="editingGroup.Name" rounded outlined label="Nom" class="col-11"/>
           </div>
         </q-card-section>
 
@@ -114,7 +112,7 @@ const columns = [
 ]
 
 async function loadGroups() {
-  const response = await fetch('http://10.0.52.142/success/api.php/show_group')
+  const response = await fetch('http://10.0.52.142/success/api.php/show_group/')
   if (!response.ok) throw new Error('Erreur HTTP ' + response.status)
 
   const data = await response.json()
@@ -199,6 +197,14 @@ function editRow(row) {
     nb_user: row.nb_user
   }
   showEditDialog.value = true
+}
+
+function goToMatchUser() {
+  if (editingGroup.value && editingGroup.value.Id) {
+    window.location.href = '/#/matchUser?idGroup=' + editingGroup.value.Id;
+  } else {
+    console.warn("Aucun ID de groupe trouvé.");
+  }
 }
 
 async function deleteRow(row) {
