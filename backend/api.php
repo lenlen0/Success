@@ -6,6 +6,7 @@ include "modele/bdd.exam.inc.php";
 include "modele/bdd.group.inc.php";
 include "modele/bdd.user.inc.php";
 include "modele/bdd.answer.inc.php";
+include "modele/bdd.takeexam.inc.php";
 
 $Question = new Question();
 $Quizz = new Quizz();
@@ -13,6 +14,7 @@ $Exam = new Exam();
 $Group = new Group();
 $User = new User();
 $Answer = new Answer();
+$TakeExam = new TakeExam();
 
 // En-t  tes pour le JSON et CORS
 header("Content-Type: application/json; charset=UTF-8");
@@ -416,6 +418,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $delAnswer2 = $Answer->deleteAnswerByidQuestion($data['idQuestion']);
 
             if (!$delAnswer2) {
+                http_response_code(500);
+                echo json_encode(["status" => "error"]);
+                exit;
+            }
+
+            echo json_encode(["status" => "success"], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+            exit;
+
+        case 'user_result_exam':
+            if (empty($data['id_s11']) || empty($data['idExam']) || empty($data['answer']) || empty($data['grade'])) {
+                http_response_code(422);
+                echo json_encode(["status" => "error", "message" => "Champs 'id_s11', 'idExam', 'answer' et 'grade' requis pour la supression."]);
+                exit;
+            }
+
+            $UserResultExam = $TakeExam->userTakeExam($data['id_s11'], $data['idExam'], $data['answer'], $data['grade']);
+
+            if (!$UserResultExam) {
                 http_response_code(500);
                 echo json_encode(["status" => "error"]);
                 exit;
