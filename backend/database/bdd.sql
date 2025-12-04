@@ -48,7 +48,7 @@ CREATE TABLE IF NOT EXISTS Question (
 
 CREATE TABLE IF NOT EXISTS Answer (
     idAnswer INT PRIMARY KEY AUTO_INCREMENT NOT NULL,
-    name JSON NOT NULL,
+    name TEXT NOT NULL,
     isCorrect BOOLEAN NOT NULL,
     idQuestion INT NOT NULL,
     FOREIGN KEY (idQuestion) REFERENCES Question(idQuestion) ON DELETE CASCADE
@@ -66,7 +66,7 @@ CREATE TABLE IF NOT EXISTS TakeExam (
     id_s11 INT NOT NULL,
     idExam INT NOT NULL,
     date_exam DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    answer TEXT,
+    answer JSON,
     grade FLOAT,
     PRIMARY KEY (id_s11, idExam),
     FOREIGN KEY (id_s11) REFERENCES User(id_s11) ON DELETE CASCADE,
