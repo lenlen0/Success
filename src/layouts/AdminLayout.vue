@@ -81,7 +81,7 @@ const linksList = [
     title: 'Déconnexion',
     caption: 'Quitter vers le portail de connexion',
     icon: 'logout',
-    link: 'https://www.urssaf.fr/accueil.html'
+    link: 'http://localhost:9000/#/'
   }
 ]
 
