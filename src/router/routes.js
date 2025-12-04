@@ -39,6 +39,14 @@ const routes = [
     ]
   },
 
+  {
+    path: '/matchUser',
+    component: () => import('layouts/AdminLayout.vue'),
+    children: [
+      { path: '', component: () => import('pages/MatchUserGroup.vue') }
+    ]
+  },
+
 {
     path: '/Utilisateurs',
     component: () => import('layouts/AdminLayout.vue'),
