@@ -30,38 +30,63 @@
           <q-separator />
 
           <q-card-section>
-              <div class="q-gutter-sm">
-                <q-list separator>
-                  <q-item v-for="(row, index) in rows" :key="index" tag="label" v-ripple>
-                    <q-item-section avatar>
-                      <q-radio v-model="selectedAnswer" :val="row.name" color="purple-7" />
-                    </q-item-section>
-                    <q-item-section>
-                      <q-item-label>{{ row.name }}</q-item-label>
-                    </q-item-section>
-                  </q-item>
-                </q-list>
-              </div>
+            <div class="q-gutter-sm">
+              <q-list separator>
+                <q-item v-for="(row, index) in rows" :key="row.idAnswer || index" tag="label" v-ripple>
+                  <q-item-section avatar>
+                    <q-radio
+                      v-model="selectedAnswer"
+                      :val="row.idAnswer"
+                      :name="`answer-${idQuestion}`"
+                      color="purple-7"
+                    />
+                  </q-item-section>
+                  <q-item-section>
+                    <q-item-label>{{ row.name }}</q-item-label>
+                  </q-item-section>
+                </q-item>
+              </q-list>
+            </div>
 
-              <div class="row justify-between q-mt-lg">
+            <div class="row justify-between q-mt-lg">
 
+              <q-btn
+                v-if="currentIndex < questionsList.length - 1"
+                label="Passer la question"
+                color="grey-7"
+                flat
+                icon="skip_next"
+                @click="nextQuestion"
+              />
+              <div v-else></div>
+
+              <div class="row items-center">
                 <q-btn
-                  v-if="currentIndex < questionsList.length - 1"
-                  label="Passer la question"
-                  color="grey-7"
-                  flat
-                  icon="skip_next"
-                  @click="nextQuestion"
-                />
-                <div v-else></div> <q-btn
-                  :label="isLastQuestion ? 'Terminer le questionnaire' : 'Valider ma réponse'"
-                  type="submit"
+                  v-if="!isLastQuestion"
+                  label="Valider la réponse"
+                  type="button"
                   color="purple-7"
                   icon-right="send"
                   unelevated
-                  @click="submitAnswer"
+                  @click="validateAnswer"
+                />
+
+                <q-btn
+                  v-else
+                  label="Terminer le questionnaire"
+                  type="button"
+                  color="negative"
+                  class="q-ml-sm"
+                  unelevated
+                  @click="finishExam"
                 />
               </div>
+            </div>
+
+
+            <div class="q-mt-md">
+
+            </div>
 
           </q-card-section>
         </q-card>
@@ -83,12 +108,15 @@ const idQuestion = ref(null)
 const idquizz = 10
 const currentQuestionName = ref('')
 const selectedAnswer = ref(null)
+const selectedAnswers = ref([])
 const loading = ref(true)
 const errorMessage = ref(null)
 
 const isLastQuestion = computed(() => {
   return questionsList.value.length > 0 && currentIndex.value === questionsList.value.length - 1
 })
+
+
 
 onMounted(async () => {
   loading.value = true
@@ -144,13 +172,16 @@ async function loadAnswers(questionId) {
     const url = `http://10.0.52.142/success/api.php/show_answer/${questionId}`;
     const response = await fetch(url);
 
-    if (response.ok) {
+      if (response.ok) {
       const data = await response.json();
       const answersList = Array.isArray(data) ? data : (data.records || []);
 
       rows.value = answersList.map(item => ({
-        name: item.name
+        name: item.name ?? item.label ?? item.text ?? '',
+        idAnswer: item.id ?? item.idAnswer ?? item.ID ?? item.answer_id ?? null
       }));
+
+      console.debug('Loaded answers for question', questionId, rows.value);
     }
   } catch (err) {
     console.error("Erreur loadAnswers :", err);
@@ -158,7 +189,24 @@ async function loadAnswers(questionId) {
 }
 
 // --- NOUVELLE FONCTION : Passer à la suivante ---
+function recordCurrentAnswer(providedAnswer) {
+  // Utiliser l'index de la question pour stocker la réponse dans le tableau
+  const qIndex = currentIndex.value
+  const ansId = (providedAnswer === undefined)
+    ? (selectedAnswer.value == null ? null : selectedAnswer.value)
+    : (providedAnswer == null ? null : providedAnswer)
+
+  // S'assurer que le tableau a la bonne taille
+  while (selectedAnswers.value.length <= qIndex) selectedAnswers.value.push(null)
+
+  selectedAnswers.value[qIndex] = ansId
+
+  console.debug('Sélectionnées (array) :', selectedAnswers.value)
+}
+
 function nextQuestion() {
+  recordCurrentAnswer()
+
   if (currentIndex.value < questionsList.value.length - 1) {
     currentIndex.value++;
     loading.value = true;
@@ -168,12 +216,61 @@ function nextQuestion() {
   }
 }
 
-function submitAnswer() {
-  if (!selectedAnswer.value) {
-    console.warn("Veuillez sélectionner une réponse");
-    return;
-  }
-  console.log(`Réponse envoyée pour la question ${idQuestion.value} :`, selectedAnswer.value);
 
+async function submitExam(answer) {
+  try {
+    const response = await fetch("http://10.0.52.142/success/api.php/user_result_exam", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        id_s11: 2,
+        idExam: 95,
+        answer: answer,
+        grade: 10
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error("Erreur API " + response.status);
+    }
+
+    const data = await response.json();
+    console.log("reponse envoyer:", data);
+
+    return data;
+
+  } catch (err) {
+    console.error("Erreur", err);
+  }
 }
+
+function validateAnswer() {
+  recordCurrentAnswer()
+  if (currentIndex.value < questionsList.value.length - 1) {
+    nextQuestion()
+  } else {
+    console.log('Dernière question — utilisez "Terminer le questionnaire" pour finir.')
+  }
+}
+
+function finishExam() {
+  recordCurrentAnswer()
+
+  ;(async () => {
+    try {
+      loading.value = true
+      const result = await submitExam(selectedAnswers.value)
+      loading.value = false
+      console.log('Envoi réussi :', result)
+      errorMessage.value = null
+    } catch (err) {
+      loading.value = false
+      console.error("Erreur lors de l'envoi des résultats :", err)
+      errorMessage.value = "Erreur lors de l'envoi des résultats."
+    }
+  })()
+}
+
 </script>
