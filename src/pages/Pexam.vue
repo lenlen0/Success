@@ -100,12 +100,16 @@
 defineOptions({ name: 'PageExam' })
 
 import { ref, computed, onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 
+const route = useRoute()
+const router = useRouter()
 const rows = ref([])
 const questionsList = ref([])
 const currentIndex = ref(0)
 const idQuestion = ref(null)
-const idquizz = 10
+const idquizz = ref(route.query.idQuizz ? parseInt(route.query.idQuizz) : 10)
+const idExam = ref(route.query.idExam ? parseInt(route.query.idExam) : 95)
 const currentQuestionName = ref('')
 const selectedAnswer = ref(null)
 const selectedAnswers = ref([])
@@ -122,7 +126,7 @@ onMounted(async () => {
   loading.value = true
   errorMessage.value = null
 
-  await getQuestionsFromQuiz(idquizz)
+  await getQuestionsFromQuiz(idquizz.value)
 
   if (questionsList.value.length > 0) {
     loadCurrentQuestionData()
@@ -131,7 +135,7 @@ onMounted(async () => {
   loading.value = false
 })
 
-// --- FONCTION 1 : Récupérer TOUTES les questions ---
+// --- FONCTION 1 : Récupérer TOUTES les question
 async function getQuestionsFromQuiz(quizId) {
   try {
     const url = `http://10.0.52.142/success/api.php/show_question/${quizId}`;
@@ -155,7 +159,7 @@ async function getQuestionsFromQuiz(quizId) {
   }
 }
 
-// --- FONCTION : Charger la question actuelle selon l'index ---
+// --- FONCTION : Charger la question
 async function loadCurrentQuestionData() {
   const currentQ = questionsList.value[currentIndex.value];
 
@@ -166,7 +170,7 @@ async function loadCurrentQuestionData() {
   await loadAnswers(idQuestion.value);
 }
 
-// --- FONCTION 2 : Charger les réponses ---
+// --- FONCTION 2 : Charger les réponses
 async function loadAnswers(questionId) {
   try {
     const url = `http://10.0.52.142/success/api.php/show_answer/${questionId}`;
@@ -188,15 +192,11 @@ async function loadAnswers(questionId) {
   }
 }
 
-// --- NOUVELLE FONCTION : Passer à la suivante ---
 function recordCurrentAnswer(providedAnswer) {
-  // Utiliser l'index de la question pour stocker la réponse dans le tableau
   const qIndex = currentIndex.value
   const ansId = (providedAnswer === undefined)
     ? (selectedAnswer.value == null ? null : selectedAnswer.value)
     : (providedAnswer == null ? null : providedAnswer)
-
-  // S'assurer que le tableau a la bonne taille
   while (selectedAnswers.value.length <= qIndex) selectedAnswers.value.push(null)
 
   selectedAnswers.value[qIndex] = ansId
@@ -217,7 +217,53 @@ function nextQuestion() {
 }
 
 
-async function submitExam(answer) {
+async function getAnswerStatus(questionId, answerId) {
+  try {
+    const url = `http://10.0.52.142/success/api.php/show_answer/${questionId}`;
+    const response = await fetch(url);
+
+    if (response.ok) {
+      const data = await response.json();
+      const answersList = Array.isArray(data) ? data : (data.records || []);
+      const answer = answersList.find(item =>
+        String(item.id ?? item.idAnswer) === String(answerId)
+      );
+      if (answer) {
+        const isCorrect = answer.isCorrect ?? answer.correct;
+        if (isCorrect === 1 || isCorrect === true) return 1;
+        if (isCorrect === 0 || isCorrect === false) return -1;
+      }
+    }
+  } catch (err) {
+    console.error(`Erreur getAnswerStatus pour question ${questionId}:`, err);
+  }
+  return 0;
+}
+
+async function calculateGrade(userAnswers) {
+  let totalScore = 0;
+  let totalQuestions = questionsList.value.length;
+
+  for (let i = 0; i < totalQuestions; i++) {
+    const question = questionsList.value[i];
+    const questionId = question.id ?? question.idQuestion;
+    const userAnswer = userAnswers[i];
+
+    if (userAnswer === null || userAnswer === undefined) {
+      console.debug(`Question ${i + 1}: Pas de réponse, score = 0`);
+      totalScore += 0;
+    } else {
+      const score = await getAnswerStatus(questionId, userAnswer);
+      console.debug(`Question ${i + 1}: Réponse ${userAnswer}, score = ${score}`);
+      totalScore += score;
+    }
+  }
+
+  console.debug(`Grade total calculé: ${totalScore} (somme des scores par question)`);
+  return totalScore;
+}
+
+async function submitExam(answer, grade) {
   try {
     const response = await fetch("http://10.0.52.142/success/api.php/user_result_exam", {
       method: "POST",
@@ -225,10 +271,10 @@ async function submitExam(answer) {
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        id_s11: 2,
-        idExam: 95,
+        id_s11: 3,
+        idExam: idExam.value,
         answer: answer,
-        grade: 10
+        grade: grade
       })
     });
 
@@ -261,10 +307,18 @@ function finishExam() {
   ;(async () => {
     try {
       loading.value = true
-      const result = await submitExam(selectedAnswers.value)
+      const calculatedGrade = await calculateGrade(selectedAnswers.value)
+      console.debug('Grade calculé avant envoi:', calculatedGrade)
+
+      const result = await submitExam(selectedAnswers.value, calculatedGrade)
       loading.value = false
       console.log('Envoi réussi :', result)
       errorMessage.value = null
+
+      // Redirection vers AccueilU après 1.5 secondes
+      setTimeout(() => {
+        router.push('/AccueilU')
+      }, 1500)
     } catch (err) {
       loading.value = false
       console.error("Erreur lors de l'envoi des résultats :", err)
