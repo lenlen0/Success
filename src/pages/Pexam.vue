@@ -100,9 +100,10 @@
 defineOptions({ name: 'PageExam' })
 
 import { ref, computed, onMounted } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 
 const route = useRoute()
+const router = useRouter()
 const rows = ref([])
 const questionsList = ref([])
 const currentIndex = ref(0)
@@ -313,6 +314,11 @@ function finishExam() {
       loading.value = false
       console.log('Envoi réussi :', result)
       errorMessage.value = null
+
+      // Redirection vers AccueilU après 1.5 secondes
+      setTimeout(() => {
+        router.push('/AccueilU')
+      }, 1500)
     } catch (err) {
       loading.value = false
       console.error("Erreur lors de l'envoi des résultats :", err)
