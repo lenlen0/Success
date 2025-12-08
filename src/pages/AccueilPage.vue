@@ -3,112 +3,112 @@
     
     <div class="column items-center q-gutter-xl full-width" style="max-width: 1200px;">
         
-        <q-card class="q-pa-lg full-width" flat bordered>
-            <q-card-section>
-              <div class="text-h5 text-purple-12 text-weight-bold">Statistiques Clés</div>
-              
-              <div class="row q-gutter-xl q-mt-md justify-around">
-                  <div class="column items-center">
-                      <q-knob
-                          v-model="averageGrade"
-                          show-value
-                          size="100px"
-                          :thickness="0.22"
-                          color="purple-7"
-                          track-color="purple-1"
-                          class="text-purple-7"
-                          :min="0"
-                          :max="100"
-                          readonly
-                      >
-                          {{ averageGrade }}%
-                      </q-knob>
-                      <div class="text-subtitle1 text-grey-8 q-mt-sm">Moyenne Générale</div>
-                  </div>
+      <q-card class="q-pa-lg full-width" flat bordered>
+        <q-card-section>
+          <div class="text-h5 text-purple-12 text-weight-bold">Statistiques Clés</div>
+          
+          <div class="row q-gutter-xl q-mt-md justify-around">
+            <div class="column items-center">
+              <q-knob
+                v-model="averageGrade"
+                show-value
+                size="100px"
+                :thickness="0.22"
+                color="purple-7"
+                track-color="purple-1"
+                class="text-purple-7"
+                :min="0"
+                :max="100"
+                readonly
+              >
+                {{ averageGrade }}%
+              </q-knob>
+              <div class="text-subtitle1 text-grey-8 q-mt-sm">Moyenne Générale</div>
+            </div>
 
-                  <div class="column items-center">
-                    <div class="text-h4 text-purple-7 text-weight-bold">{{ totalExams }}</div>
-                    <div class="text-subtitle1 text-grey-8">Évaluations Crées</div>
-                  </div>
-                  
-                  <div class="column items-center">
-                    <div class="text-h4 text-purple-7 text-weight-bold">{{ maxAvgGrade }}%</div>
-                    <div class="text-subtitle1 text-grey-8">Meilleure Réussite</div>
-                  </div>
+            <div class="column items-center">
+              <div class="text-h4 text-purple-7 text-weight-bold">{{ totalExams }}</div>
+              <div class="text-subtitle1 text-grey-8">Évaluations Crées</div>
+            </div>
+            
+            <div class="column items-center">
+              <div class="text-h4 text-purple-7 text-weight-bold">{{ maxAvgGrade }}%</div>
+              <div class="text-subtitle1 text-grey-8">Meilleure Réussite</div>
+            </div>
+          </div>
+        </q-card-section>
+      </q-card>
+
+      <q-card class="q-pa-lg full-width" flat bordered>
+        <q-card-section class="q-pb-none">
+          <div class="text-h5 text-purple-12 text-weight-bold">Moyennes de réussite par Examen 📈</div>
+          <div class="text-subtitle2 text-grey-7">Visualisation des performances sur l'ensemble des évaluations.</div>
+        </q-card-section>
+
+        <q-card-section class="row q-gutter-md q-pt-md">
+          
+          <q-select
+            class="col-12 col-md-5"
+            outlined
+            dense
+            v-model="selectedGroups"
+            :options="groupOptions"
+            label="Filtrer par Groupe"
+            multiple
+            emit-value
+            map-options
+            options-dense
+            clearable
+            use-chips
+            @clear="selectedGroups = []" 
+          />
+          
+          <q-select
+            class="col-12 col-md-5"
+            outlined
+            dense
+            v-model="selectedExams"
+            :options="examOptions"
+            label="Filtrer par Évaluation"
+            multiple
+            emit-value
+            map-options
+            options-dense
+            clearable
+            use-chips
+            @clear="selectedExams = []"
+          />
+        </q-card-section>
+
+        <q-card-section>
+          <div v-if="chartData.length > 0" class="q-pa-md">
+            <div class="bar-chart-container q-pa-md">
+              <div class="bar-chart-header text-caption text-weight-bold text-grey-8 row justify-end">
+                <span>total en 100%</span>
               </div>
-            </q-card-section>
-        </q-card>
-
-        <q-card class="q-pa-lg full-width" flat bordered>
-            <q-card-section class="q-pb-none">
-                <div class="text-h5 text-purple-12 text-weight-bold">Moyennes de réussite par Examen 📈</div>
-                <div class="text-subtitle2 text-grey-7">Visualisation des performances sur l'ensemble des évaluations.</div>
-            </q-card-section>
-
-            <q-card-section class="row q-gutter-md q-pt-md">
-                
-                <q-select
-                    class="col-12 col-md-5"
-                    outlined
-                    dense
-                    v-model="selectedGroups"
-                    :options="groupOptions"
-                    label="Filtrer par Groupe"
-                    multiple
-                    emit-value
-                    map-options
-                    options-dense
-                    clearable
-                    use-chips
-                    @clear="selectedGroups = []" 
-                />
-                
-                <q-select
-                    class="col-12 col-md-5"
-                    outlined
-                    dense
-                    v-model="selectedExams"
-                    :options="examOptions"
-                    label="Filtrer par Évaluation"
-                    multiple
-                    emit-value
-                    map-options
-                    options-dense
-                    clearable
-                    use-chips
-                    @clear="selectedExams = []"
-                />
-            </q-card-section>
-
-            <q-card-section>
-                <div v-if="chartData.length > 0" class="q-pa-md">
-                    <div class="bar-chart-container q-pa-md">
-                        <div class="bar-chart-header text-caption text-weight-bold text-grey-8 row justify-end">
-                            <span>total en 100%</span>
-                        </div>
-                        <div class="bar-chart-grid">
-                            <div 
-                                v-for="(item, index) in chartData" 
-                                :key="index" 
-                                class="chart-item column items-center"
-                            >
-                                <div class="bar-label text-caption text-purple-12">{{ item.label }}</div>
-                                
-                                <div 
-                                    class="chart-bar" 
-                                    :style="{ height: item.percentage + '%', backgroundColor: getColor(index) }"
-                                >
-                                    <span class="bar-value text-white text-weight-bold">{{ item.percentage }}%</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    </div>
-                <div v-else class="text-center q-pa-md text-grey-6">
-                    Aucune donnée d'examen correspond aux filtres actuels.
+              <div class="bar-chart-grid">
+                <div 
+                  v-for="(item, index) in chartData" 
+                  :key="index" 
+                  class="chart-item column items-center"
+                >
+                  <div class="bar-label text-caption text-purple-12">{{ item.label }}</div>
+                  
+                  <div 
+                    class="chart-bar" 
+                    :style="{ height: item.percentage + '%', backgroundColor: getColor(index) }"
+                  >
+                    <span class="bar-value text-white text-weight-bold">{{ item.percentage }}%</span>
+                  </div>
                 </div>
-            </q-card-section>
-        </q-card>
+              </div>
+            </div>
+          </div>
+          <div v-else class="text-center q-pa-md text-grey-6">
+            Aucune donnée d'examen correspond aux filtres actuels.
+          </div>
+        </q-card-section>
+      </q-card>
 
     </div>
   </q-page>
@@ -118,13 +118,13 @@
 import { ref, onMounted, computed } from 'vue'
 
 // --- 1. États Réactifs et Données ---
-const examsData = ref([]) // Contient toutes les données brutes de l'API
-const groupOptions = ref([]) // Options pour le Q-Select des groupes
-const examOptions = ref([]) // Options pour le Q-Select des examens (évals)
+const examsData = ref([]) 
+const groupOptions = ref([]) 
+const examOptions = ref([]) 
 
 // --- États pour le Filtrage (Modèle des Q-Select) ---
 const selectedGroups = ref([]) 
-const selectedExams = ref([])  
+const selectedExams = ref([]) 
 
 // --- 2. Fonctions Graphique et Statistiques (Basées sur les FILTRES) ---
 
@@ -133,14 +133,14 @@ const chartData = computed(() => {
     
     let filteredData = examsData.value;
     
-    // 1. Filtrer par Groupe
+    // 1. Filtrer par Groupe : Utilise des NOMBRES entiers pour la comparaison.
     if (selectedGroups.value.length > 0) {
         filteredData = filteredData.filter(item => 
             selectedGroups.value.includes(item.idGroup)
         );
     }
 
-    // 2. Filtrer par Examen (Évaluation)
+    // 2. Filtrer par Examen (Évaluation) : Utilise des NOMBRES entiers pour la comparaison.
     if (selectedExams.value.length > 0) {
         filteredData = filteredData.filter(item => 
             selectedExams.value.includes(item.idExam)
@@ -162,7 +162,7 @@ function getColor(index) {
     '#4DB6AC', // teal
     '#FFB74D', // orange
     '#64B5F6', // light-blue
-    '#E91E63'  // pink
+    '#E91E63' // pink
   ];
   return colors[index % colors.length];
 }
@@ -187,13 +187,13 @@ const maxAvgGrade = computed(() => {
   return Math.max(...grades).toFixed(1) 
 })
 
-// --- 3. Logique de chargement des données (Utilisation de votre logique complète) ---
+// --- 3. Logique de chargement des données (Cohérence des NOMBRES) ---
 
 async function loadGroups() {
     try {
         const res = await fetch('http://10.0.52.142/success/api.php/show_group')
         const data = await res.json()
-        // Mapping pour le Q-Select (value doit être l'ID pour le filtre)
+        // S'assurer que le value du Q-Select est un NOMBRE
         groupOptions.value = data.map(g => ({ label: g.name, value: parseInt(g.idGroup) }))
     } catch (err) {
         console.error('Erreur chargement groupes:', err)
@@ -208,17 +208,18 @@ async function loadExams() {
         // Stockage des données brutes enrichies avec les IDs pour le filtrage
         examsData.value = data.map(item => ({
             nom: item.exam_name,
-            // Conversion de la moyenne en %
+            // Conversion de la moyenne en % (Assurez-vous que le calcul * 5 est correct selon votre API)
             reussite: `${item.avg_grade !== null ? (item.avg_grade * 5).toFixed(1) : 0}%`, 
-            // Ajout des IDs nécessaires pour le filtrage
+            // CORRIGÉ : S'assurer que les IDs sont des NOMBRES entiers
             idGroup: parseInt(item.idGroup),
             idExam: parseInt(item.idExam),
         }))
         
-        // Mise à jour des options de sélection d'examen (une fois que examsData est chargé)
+        // Mise à jour des options de sélection d'examen 
         examOptions.value = examsData.value.map(item => ({
             label: item.nom,
-            value: item.idExam // La valeur est l'ID de l'examen
+            // La valeur est le NOMBRE idExam
+            value: item.idExam 
         }));
 
     } catch (err) {
