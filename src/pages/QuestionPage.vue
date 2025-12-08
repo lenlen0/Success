@@ -139,7 +139,7 @@
         </q-card-section>
 
         <q-card-section>
-          <div class="row q-gutter-md">
+          <div v-if="!isLoadingIA" class="row q-gutter-md">
             <q-input v-model="newIAGeneration.nb_question" rounded outlined label="Nombres de questions" class="col-11" />
             <q-input v-model="newIAGeneration.theme" rounded outlined label="Theme" class="col-11" />
             <q-select
@@ -157,15 +157,22 @@
               map-options
             />
           </div>
+          <!-- Loader pendant la génération -->
+          <div v-if="isLoadingIA" class="column items-center q-mt-lg">
+            <q-spinner color="purple-7" size="50px" />
+            <p class="text-center q-mt-md text-purple-7">Génération en cours...</p>
+          </div>
         </q-card-section>
         <q-card-actions align="right">
-          <q-btn unelevated rounded color="purple-7" label="Annuler" v-close-popup />
+          <q-btn unelevated rounded color="purple-7" label="Annuler" v-close-popup :disable="isLoadingIA" />
           <q-btn
           @click="IAHub"
           unelevated
           rounded
           color="purple-7"
           label="Ajouter"
+          :disable="isLoadingIA"
+          :loading="isLoadingIA"
         />
         </q-card-actions>
       </q-card>
@@ -223,20 +230,26 @@
         <q-card-section class="bg-purple-1 text-purple-10">
           <div class="text-h6">Générer des réponses</div>
         </q-card-section>
-          <div class="row q-gutter-md">
+          <div v-if="!isLoadingResponse" class="row q-gutter-md">
             <q-input v-model="genIAResponse.nb_answer" rounded outlined label="Nombres de réponses" class="col-11" />
           </div>
         <q-card-section>
-
+          <!-- Loader pendant la génération des réponses -->
+          <div v-if="isLoadingResponse" class="column items-center q-mt-lg">
+            <q-spinner color="purple-7" size="50px" />
+            <p class="text-center q-mt-md text-purple-7">Génération des réponses en cours...</p>
+          </div>
         </q-card-section>
         <q-card-actions align="right">
-          <q-btn unelevated rounded color="purple-7" label="Annuler" v-close-popup />
+          <q-btn unelevated rounded color="purple-7" label="Annuler" v-close-popup :disable="isLoadingResponse" />
           <q-btn
           @click="askGeminiForAnswers(genIAResponse.nb_answer)"
           unelevated
           rounded
           color="purple-7"
           label="Ajouter"
+          :disable="isLoadingResponse"
+          :loading="isLoadingResponse"
         />
         </q-card-actions>
       </q-card>
@@ -295,7 +308,7 @@
 import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 
-const API_Gemini = "AIzaSyAOKd8h6HBLBP2UZRi14XDD2BfSqKz96rk";
+const API_Gemini = "AIzaSyBec53Pcp8X4jq39FZshKrXXyvesBZXp4s";
 
 const route = useRoute()
 const showDialog = ref(false)
@@ -304,6 +317,8 @@ const showIADialog = ref(false)
 const showIAResult = ref(false)
 const showAskIAResponse = ref(false)
 const showResponseIAResult = ref(false)
+const isLoadingIA = ref(false)
+const isLoadingResponse = ref(false)
 const rows = ref([])
 const temp_rows = ref([])
 const responses_rows = ref([])
@@ -389,12 +404,15 @@ async function addResponseByIA() {
 }
 
 async function askGeminiForAnswers(nb_answer) {
-  const questions = rows.value.map(q => ({
-    idQuestion: q.Numero,
-    name: q.Nom
-  }));
+  isLoadingResponse.value = true
 
-  const prompt = `Génère moi ${nb_answer} réponses par question. Une seule doit être correcte.
+  try {
+    const questions = rows.value.map(q => ({
+      idQuestion: q.Numero,
+      name: q.Nom
+    }));
+
+    const prompt = `Génère moi ${nb_answer} réponses par question. Une seule doit être correcte.
 
 Voici les questions avec leurs ID réels :
 
@@ -415,40 +433,76 @@ IMPORTANT :
 - NE PAS créer de numérotation automatique.
 `;
 
-  const body = {
-    contents: [
-      { parts: [{ text: prompt }] }
-    ]
-  };
+    const body = {
+      contents: [
+        { parts: [{ text: prompt }] }
+      ]
+    };
 
-  const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${API_Gemini}`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body)
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${API_Gemini}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+      }
+    );
+
+    const data = await response.json();
+
+    let raw = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+
+    raw = raw.replace(/```json/g, "").replace(/```/g, "").trim();
+
+    try {
+      const parsed = JSON.parse(raw);
+      responses_rows.value = parsed.map((item) => ({
+      name: item.name,
+      isCorrect: item.isCorrect,
+      idQuestion: item.idQuestion
+      }))
+
+      // Mélanger aléatoirement les réponses par question
+      shuffleAnswersByQuestion()
+
+      showAskIAResponse.value = false
+      showResponseIAResult.value = true
+      console.log(responses_rows)
+    } catch (err) {
+      console.error("Réponse Gemini NON JSON :\n", raw, err);
     }
-  );
-
-  const data = await response.json();
-
-  let raw = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
-
-  raw = raw.replace(/```json/g, "").replace(/```/g, "").trim();
-
-  try {
-    const parsed = JSON.parse(raw);
-    responses_rows.value = parsed.map((item) => ({
-    name: item.name,
-    isCorrect: item.isCorrect,
-    idQuestion: item.idQuestion
-    }))
-    showAskIAResponse.value = false
-    showResponseIAResult.value = true
-    console.log(responses_rows)
-  } catch (err) {
-    console.error("Réponse Gemini NON JSON :\n", raw, err);
+  } finally {
+    isLoadingResponse.value = false
   }
+}
+
+// Fonction pour mélanger aléatoirement les réponses tout en gardant la bonne réponse correcte
+function shuffleAnswersByQuestion() {
+  const groupedByQuestion = {};
+
+  // Grouper les réponses par question
+  responses_rows.value.forEach(answer => {
+    if (!groupedByQuestion[answer.idQuestion]) {
+      groupedByQuestion[answer.idQuestion] = [];
+    }
+    groupedByQuestion[answer.idQuestion].push(answer);
+  });
+
+  // Pour chaque question, mélanger ses réponses
+  const newResponses = [];
+  Object.keys(groupedByQuestion).forEach(idQuestion => {
+    const answersForQuestion = groupedByQuestion[idQuestion];
+
+    // Fisher-Yates shuffle
+    for (let i = answersForQuestion.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [answersForQuestion[i], answersForQuestion[j]] = [answersForQuestion[j], answersForQuestion[i]];
+    }
+
+    newResponses.push(...answersForQuestion);
+  });
+
+  responses_rows.value = newResponses;
 }
 
 const removeAnswer = (index) => {
@@ -523,7 +577,10 @@ const responses_columns = [
 ]
 
 async function sendToGemini(nb_question, theme, difficulty, id) {
-  const prompt = `
+  isLoadingIA.value = true
+
+  try {
+    const prompt = `
 Réalise moi ${nb_question} questions sur le thème suivant : ${theme}. Toutes les questions devront avoir le même niveau de difficulté
 qui est le suivant : ${difficulty}. Les questions doivent pouvoir être répondu autres que par un oui ou un non. Pour chaques réponses le format devra impérativement être le suivant :
 Réponds uniquement en JSON strictement valide.
@@ -542,44 +599,47 @@ Remplace "idT" par un id différent pour chaques questions ayant impérativement
 Répète autant que necessaire le format JSON obligatoirement en adéquation avec le nombres de questions demandées.
 `
 
-  const body = {
-    contents: [
-      {
-        parts: [{ text: prompt }]
-      }
-    ]
-  }
-
-  const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${API_Gemini}`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body)
+    const body = {
+      contents: [
+        {
+          parts: [{ text: prompt }]
+        }
+      ]
     }
-  )
 
-  const data = await response.json()
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${API_Gemini}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+      }
+    )
 
-  let rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text || ''
+    const data = await response.json()
 
-    rawText = rawText
-    .replace(/```json/g, "")
-    .replace(/```/g, "")
-    .trim();
+    let rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text || ''
 
-  try {
-    const parsed = JSON.parse(rawText)
-    temp_rows.value = parsed.map((item) => ({
-    IdTemporaire: item.idTemp,
-    idQuizz: item.idQuizz,
-    Question: item.name
-    }))
-    showIADialog.value = false
-    showIAResult.value = true
-    console.log(temp_rows)
-  } catch {
-    console.error('Erreur : Réponse non JSON\n', rawText)
+      rawText = rawText
+      .replace(/```json/g, "")
+      .replace(/```/g, "")
+      .trim();
+
+    try {
+      const parsed = JSON.parse(rawText)
+      temp_rows.value = parsed.map((item) => ({
+      IdTemporaire: item.idTemp,
+      idQuizz: item.idQuizz,
+      Question: item.name
+      }))
+      showIADialog.value = false
+      showIAResult.value = true
+      console.log(temp_rows)
+    } catch {
+      console.error('Erreur : Réponse non JSON\n', rawText)
+    }
+  } finally {
+    isLoadingIA.value = false
   }
 }
 

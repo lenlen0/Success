@@ -1,12 +1,12 @@
 <template>
   <q-page class="flex flex-center q-pa-lg" style="background-color: #FFF4FF;">
-    
+
     <div class="column items-center q-gutter-xl full-width" style="max-width: 1200px;">
-        
+
       <q-card class="q-pa-lg full-width" flat bordered>
         <q-card-section>
           <div class="text-h5 text-purple-12 text-weight-bold">Statistiques Clés</div>
-          
+
           <div class="row q-gutter-xl q-mt-md justify-around">
             <div class="column items-center">
               <q-knob
@@ -30,7 +30,7 @@
               <div class="text-h4 text-purple-7 text-weight-bold">{{ totalExams }}</div>
               <div class="text-subtitle1 text-grey-8">Évaluations Crées</div>
             </div>
-            
+
             <div class="column items-center">
               <div class="text-h4 text-purple-7 text-weight-bold">{{ maxAvgGrade }}%</div>
               <div class="text-subtitle1 text-grey-8">Meilleure Réussite</div>
@@ -46,7 +46,7 @@
         </q-card-section>
 
         <q-card-section class="row q-gutter-md q-pt-md">
-          
+
           <q-select
             class="col-12 col-md-5"
             outlined
@@ -60,9 +60,9 @@
             options-dense
             clearable
             use-chips
-            @clear="selectedGroups = []" 
+            @clear="selectedGroups = []"
           />
-          
+
           <q-select
             class="col-12 col-md-5"
             outlined
@@ -87,15 +87,15 @@
                 <span>total en 100%</span>
               </div>
               <div class="bar-chart-grid">
-                <div 
-                  v-for="(item, index) in chartData" 
-                  :key="index" 
+                <div
+                  v-for="(item, index) in chartData"
+                  :key="index"
                   class="chart-item column items-center"
                 >
                   <div class="bar-label text-caption text-purple-12">{{ item.label }}</div>
-                  
-                  <div 
-                    class="chart-bar" 
+
+                  <div
+                    class="chart-bar"
                     :style="{ height: item.percentage + '%', backgroundColor: getColor(index) }"
                   >
                     <span class="bar-value text-white text-weight-bold">{{ item.percentage }}%</span>
@@ -118,35 +118,35 @@
 import { ref, onMounted, computed } from 'vue'
 
 // --- 1. États Réactifs et Données ---
-const examsData = ref([]) 
-const groupOptions = ref([]) 
-const examOptions = ref([]) 
+const examsData = ref([])
+const groupOptions = ref([])
+const examOptions = ref([])
 
 // --- États pour le Filtrage (Modèle des Q-Select) ---
-const selectedGroups = ref([]) 
-const selectedExams = ref([]) 
+const selectedGroups = ref([])
+const selectedExams = ref([])
 
 // --- 2. Fonctions Graphique et Statistiques (Basées sur les FILTRES) ---
 
 // Mappage et FILTRAGE des données pour le graphique
 const chartData = computed(() => {
-    
+
     let filteredData = examsData.value;
-    
+
     // 1. Filtrer par Groupe : Utilise des NOMBRES entiers pour la comparaison.
     if (selectedGroups.value.length > 0) {
-        filteredData = filteredData.filter(item => 
+        filteredData = filteredData.filter(item =>
             selectedGroups.value.includes(item.idGroup)
         );
     }
 
     // 2. Filtrer par Examen (Évaluation) : Utilise des NOMBRES entiers pour la comparaison.
     if (selectedExams.value.length > 0) {
-        filteredData = filteredData.filter(item => 
+        filteredData = filteredData.filter(item =>
             selectedExams.value.includes(item.idExam)
         );
     }
-    
+
     // Transformation des données filtrées pour l'affichage du graphique
     return filteredData.map(item => ({
         label: item.nom,
@@ -170,10 +170,10 @@ function getColor(index) {
 // Calcule la moyenne générale (utilise les données filtrées si des filtres sont appliqués!)
 const averageGrade = computed(() => {
     // Utilise chartData qui est déjà filtré
-    const grades = chartData.value.map(item => item.percentage); 
+    const grades = chartData.value.map(item => item.percentage);
 
     if (grades.length === 0) return 0;
-    
+
     const sum = grades.reduce((a, b) => a + b, 0);
     return (sum / grades.length).toFixed(1);
 })
@@ -182,9 +182,9 @@ const totalExams = computed(() => chartData.value.length) // Compte les examens 
 
 const maxAvgGrade = computed(() => {
   if (chartData.value.length === 0) return '0.0'
-  
+
   const grades = chartData.value.map(item => item.percentage)
-  return Math.max(...grades).toFixed(1) 
+  return Math.max(...grades).toFixed(1)
 })
 
 // --- 3. Logique de chargement des données (Cohérence des NOMBRES) ---
@@ -204,22 +204,22 @@ async function loadExams() {
     try {
         const res = await fetch('http://10.0.52.142/success/api.php/show_exam')
         const data = await res.json()
-        
+
         // Stockage des données brutes enrichies avec les IDs pour le filtrage
         examsData.value = data.map(item => ({
             nom: item.exam_name,
             // Conversion de la moyenne en % (Assurez-vous que le calcul * 5 est correct selon votre API)
-            reussite: `${item.avg_grade !== null ? (item.avg_grade * 5).toFixed(1) : 0}%`, 
+            reussite: `${item.avg_grade !== null ? (item.avg_grade * 5).toFixed(1) : 0}%`,
             // CORRIGÉ : S'assurer que les IDs sont des NOMBRES entiers
             idGroup: parseInt(item.idGroup),
             idExam: parseInt(item.idExam),
         }))
-        
-        // Mise à jour des options de sélection d'examen 
+
+        // Mise à jour des options de sélection d'examen
         examOptions.value = examsData.value.map(item => ({
             label: item.nom,
             // La valeur est le NOMBRE idExam
-            value: item.idExam 
+            value: item.idExam
         }));
 
     } catch (err) {
@@ -232,14 +232,14 @@ async function loadExams() {
 // Chargement initial
 onMounted(async () => {
     // Chargez les groupes en premier, puis les examens
-    await loadGroups() 
-    await loadExams() 
+    await loadGroups()
+    await loadExams()
 })
 </script>
 
 <style scoped>
 /* COULEURS ET GÉNÉRAL */
-.text-purple-12 { color: #8E24AA; } 
+.text-purple-12 { color: #8E24AA; }
 .bg-rose { background-color: #FFF4FF; }
 
 /* STYLE DU GRAPHIQUE À BARRES (CSS inchangé) */
@@ -251,14 +251,14 @@ onMounted(async () => {
 }
 
 .bar-chart-header {
-    height: 10px; 
-    padding-right: 15px; 
+    height: 10px;
+    padding-right: 15px;
 }
 
 .bar-chart-grid {
   display: flex;
-  align-items: flex-end; 
-  height: 300px; 
+  align-items: flex-end;
+  height: 300px;
   border-left: 1px solid #ddd;
   border-bottom: 1px solid #ddd;
   padding-left: 10px;
@@ -267,8 +267,8 @@ onMounted(async () => {
 
 .chart-item {
   height: 100%;
-  flex: 1; 
-  justify-content: flex-end; 
+  flex: 1;
+  justify-content: flex-end;
 }
 
 .chart-bar {
@@ -278,8 +278,8 @@ onMounted(async () => {
   display: flex;
   justify-content: center;
   align-items: flex-start;
-  transition: height 0.8s ease-out; 
-  min-height: 5px; 
+  transition: height 0.8s ease-out;
+  min-height: 5px;
 }
 
 .bar-value {
@@ -289,7 +289,7 @@ onMounted(async () => {
 
 .bar-label {
     margin-top: 5px;
-    height: 30px; 
+    height: 30px;
     text-align: center;
     overflow: hidden;
     white-space: nowrap;
