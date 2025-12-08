@@ -20,6 +20,21 @@ class TakeExam extends ConnexionPDO {
         }
         return $resultat;
     }
+
+    public function getTakeExamByID($id_s11, $idExam) {
+        $resultat = array();
+        try {
+            $req = $this->conn->prepare("SELECT answer FROM TakeExam WHERE id_s11 = :id_s11 AND idExam = :idExam");
+            $req->bindValue(':id_s11', $id_s11, PDO::PARAM_INT);
+            $req->bindValue(':idExam', $idExam, PDO::PARAM_INT);
+            $req->execute();
+
+            $resultat = $req->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            die($e->getMessage());
+        }
+        return $resultat;
+    }
 }
 
 ?>
