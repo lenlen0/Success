@@ -131,7 +131,7 @@ onMounted(async () => {
   loading.value = false
 })
 
-// --- FONCTION 1 : Récupérer TOUTES les questions ---
+// --- FONCTION 1 : Récupérer TOUTES les question
 async function getQuestionsFromQuiz(quizId) {
   try {
     const url = `http://10.0.52.142/success/api.php/show_question/${quizId}`;
@@ -155,7 +155,7 @@ async function getQuestionsFromQuiz(quizId) {
   }
 }
 
-// --- FONCTION : Charger la question actuelle selon l'index ---
+// --- FONCTION : Charger la question
 async function loadCurrentQuestionData() {
   const currentQ = questionsList.value[currentIndex.value];
 
@@ -166,7 +166,7 @@ async function loadCurrentQuestionData() {
   await loadAnswers(idQuestion.value);
 }
 
-// --- FONCTION 2 : Charger les réponses ---
+// --- FONCTION 2 : Charger les réponses
 async function loadAnswers(questionId) {
   try {
     const url = `http://10.0.52.142/success/api.php/show_answer/${questionId}`;
@@ -188,15 +188,11 @@ async function loadAnswers(questionId) {
   }
 }
 
-// --- NOUVELLE FONCTION : Passer à la suivante ---
 function recordCurrentAnswer(providedAnswer) {
-  // Utiliser l'index de la question pour stocker la réponse dans le tableau
   const qIndex = currentIndex.value
   const ansId = (providedAnswer === undefined)
     ? (selectedAnswer.value == null ? null : selectedAnswer.value)
     : (providedAnswer == null ? null : providedAnswer)
-
-  // S'assurer que le tableau a la bonne taille
   while (selectedAnswers.value.length <= qIndex) selectedAnswers.value.push(null)
 
   selectedAnswers.value[qIndex] = ansId
@@ -217,7 +213,6 @@ function nextQuestion() {
 }
 
 
-// Récupérer le statut d'une réponse donnée (isCorrect: 1 = +1, 0 = -1, null = 0)
 async function getAnswerStatus(questionId, answerId) {
   try {
     const url = `http://10.0.52.142/success/api.php/show_answer/${questionId}`;
@@ -226,13 +221,11 @@ async function getAnswerStatus(questionId, answerId) {
     if (response.ok) {
       const data = await response.json();
       const answersList = Array.isArray(data) ? data : (data.records || []);
-      // Trouver la réponse avec l'ID donnée
       const answer = answersList.find(item =>
         String(item.id ?? item.idAnswer) === String(answerId)
       );
       if (answer) {
         const isCorrect = answer.isCorrect ?? answer.correct;
-        // Retourner +1 si correct (1), -1 si incorrect (0), 0 si null
         if (isCorrect === 1 || isCorrect === true) return 1;
         if (isCorrect === 0 || isCorrect === false) return -1;
       }
@@ -240,10 +233,9 @@ async function getAnswerStatus(questionId, answerId) {
   } catch (err) {
     console.error(`Erreur getAnswerStatus pour question ${questionId}:`, err);
   }
-  return 0; // 0 si réponse non trouvée ou null
+  return 0;
 }
 
-// Calculer le grade automatiquement: +1 si correct, -1 si incorrect, 0 si pas de réponse
 async function calculateGrade(userAnswers) {
   let totalScore = 0;
   let totalQuestions = questionsList.value.length;
@@ -251,14 +243,12 @@ async function calculateGrade(userAnswers) {
   for (let i = 0; i < totalQuestions; i++) {
     const question = questionsList.value[i];
     const questionId = question.id ?? question.idQuestion;
-    const userAnswer = userAnswers[i]; // La réponse de l'utilisateur à la question i
+    const userAnswer = userAnswers[i];
 
-    // Si pas de réponse (null ou undefined), score = 0
     if (userAnswer === null || userAnswer === undefined) {
       console.debug(`Question ${i + 1}: Pas de réponse, score = 0`);
       totalScore += 0;
     } else {
-      // Récupérer le statut de la réponse fournie
       const score = await getAnswerStatus(questionId, userAnswer);
       console.debug(`Question ${i + 1}: Réponse ${userAnswer}, score = ${score}`);
       totalScore += score;
@@ -313,8 +303,6 @@ function finishExam() {
   ;(async () => {
     try {
       loading.value = true
-
-      // Calculer le grade automatiquement en comparant avec les réponses correctes
       const calculatedGrade = await calculateGrade(selectedAnswers.value)
       console.debug('Grade calculé avant envoi:', calculatedGrade)
 
