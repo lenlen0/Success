@@ -100,12 +100,15 @@
 defineOptions({ name: 'PageExam' })
 
 import { ref, computed, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
 
+const route = useRoute()
 const rows = ref([])
 const questionsList = ref([])
 const currentIndex = ref(0)
 const idQuestion = ref(null)
-const idquizz = 10
+const idquizz = ref(route.query.idQuizz ? parseInt(route.query.idQuizz) : 10)
+const idExam = ref(route.query.idExam ? parseInt(route.query.idExam) : 95)
 const currentQuestionName = ref('')
 const selectedAnswer = ref(null)
 const selectedAnswers = ref([])
@@ -122,7 +125,7 @@ onMounted(async () => {
   loading.value = true
   errorMessage.value = null
 
-  await getQuestionsFromQuiz(idquizz)
+  await getQuestionsFromQuiz(idquizz.value)
 
   if (questionsList.value.length > 0) {
     loadCurrentQuestionData()
@@ -268,7 +271,7 @@ async function submitExam(answer, grade) {
       },
       body: JSON.stringify({
         id_s11: 3,
-        idExam: 95,
+        idExam: idExam.value,
         answer: answer,
         grade: grade
       })
