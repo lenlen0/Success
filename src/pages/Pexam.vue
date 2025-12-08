@@ -217,7 +217,59 @@ function nextQuestion() {
 }
 
 
-async function submitExam(answer) {
+// Récupérer le statut d'une réponse donnée (isCorrect: 1 = +1, 0 = -1, null = 0)
+async function getAnswerStatus(questionId, answerId) {
+  try {
+    const url = `http://10.0.52.142/success/api.php/show_answer/${questionId}`;
+    const response = await fetch(url);
+
+    if (response.ok) {
+      const data = await response.json();
+      const answersList = Array.isArray(data) ? data : (data.records || []);
+      // Trouver la réponse avec l'ID donnée
+      const answer = answersList.find(item =>
+        String(item.id ?? item.idAnswer) === String(answerId)
+      );
+      if (answer) {
+        const isCorrect = answer.isCorrect ?? answer.correct;
+        // Retourner +1 si correct (1), -1 si incorrect (0), 0 si null
+        if (isCorrect === 1 || isCorrect === true) return 1;
+        if (isCorrect === 0 || isCorrect === false) return -1;
+      }
+    }
+  } catch (err) {
+    console.error(`Erreur getAnswerStatus pour question ${questionId}:`, err);
+  }
+  return 0; // 0 si réponse non trouvée ou null
+}
+
+// Calculer le grade automatiquement: +1 si correct, -1 si incorrect, 0 si pas de réponse
+async function calculateGrade(userAnswers) {
+  let totalScore = 0;
+  let totalQuestions = questionsList.value.length;
+
+  for (let i = 0; i < totalQuestions; i++) {
+    const question = questionsList.value[i];
+    const questionId = question.id ?? question.idQuestion;
+    const userAnswer = userAnswers[i]; // La réponse de l'utilisateur à la question i
+
+    // Si pas de réponse (null ou undefined), score = 0
+    if (userAnswer === null || userAnswer === undefined) {
+      console.debug(`Question ${i + 1}: Pas de réponse, score = 0`);
+      totalScore += 0;
+    } else {
+      // Récupérer le statut de la réponse fournie
+      const score = await getAnswerStatus(questionId, userAnswer);
+      console.debug(`Question ${i + 1}: Réponse ${userAnswer}, score = ${score}`);
+      totalScore += score;
+    }
+  }
+
+  console.debug(`Grade total calculé: ${totalScore} (somme des scores par question)`);
+  return totalScore;
+}
+
+async function submitExam(answer, grade) {
   try {
     const response = await fetch("http://10.0.52.142/success/api.php/user_result_exam", {
       method: "POST",
@@ -225,10 +277,10 @@ async function submitExam(answer) {
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        id_s11: 2,
+        id_s11: 3,
         idExam: 95,
         answer: answer,
-        grade: 10
+        grade: grade
       })
     });
 
@@ -261,7 +313,12 @@ function finishExam() {
   ;(async () => {
     try {
       loading.value = true
-      const result = await submitExam(selectedAnswers.value)
+
+      // Calculer le grade automatiquement en comparant avec les réponses correctes
+      const calculatedGrade = await calculateGrade(selectedAnswers.value)
+      console.debug('Grade calculé avant envoi:', calculatedGrade)
+
+      const result = await submitExam(selectedAnswers.value, calculatedGrade)
       loading.value = false
       console.log('Envoi réussi :', result)
       errorMessage.value = null
