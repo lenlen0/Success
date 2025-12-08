@@ -72,6 +72,14 @@ const routes = [
  },
 
  {
+  path: '/Accueil',
+  component: () => import('layouts/AdminLayout.vue'),
+  children: [
+    { path: '', component: () => import('pages/AccueilPage.vue') }
+  ]
+},
+
+ {
     path: '/Pexam',
     component: () => import('layouts/UserLayout.vue'),
     children: [
