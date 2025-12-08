@@ -19,11 +19,20 @@
         :rows="rows"
         :columns="columns"
         row-key="Id"
+        class="table-wrap-text"
       >
         <!-- Slot pour customiser la colonne "action" -->
         <template v-slot:body-cell-action="props">
-          <q-btn flat color="purple-7" icon="edit" align="center" @click="editRow(props.row)" />
-          <q-btn flat color="purple-7" icon="delete_outline" align="center" @click="deleteRow(props.row)" />
+          <q-td :props="props" class="action-cell">
+            <q-btn flat color="purple-7" icon="edit" align="center" @click="editRow(props.row)" />
+            <q-btn flat color="purple-7" icon="delete_outline" align="center" @click="deleteRow(props.row)" />
+          </q-td>
+        </template>
+        <!-- Slot pour affichage texte multi-ligne sur chaque cellule -->
+        <template v-slot:body-cell="props">
+          <q-td :props="props" :class="['wrap-cell']">
+            {{ props.value }}
+          </q-td>
         </template>
       </q-table>
     </div>
@@ -170,7 +179,7 @@
         </q-card-section>
           <div class="row q-gutter-lg flex flex-center">
             <q-table
-              class="q-mt-xl"
+              class="q-mt-xl table-wrap-text"
               flat
               bordered
               color="primary"
@@ -181,7 +190,14 @@
               row-key="Id"
             >
             <template v-slot:body-cell-action="props">
-              <q-btn flat color="purple-7" icon="delete_outline" @click="deleteTempRow(props.row)"/>
+              <q-td :props="props" class="action-cell">
+                <q-btn flat color="purple-7" icon="delete_outline" @click="deleteTempRow(props.row)"/>
+              </q-td>
+            </template>
+            <template v-slot:body-cell="props">
+              <q-td :props="props" :class="['wrap-cell']">
+                {{ props.value }}
+              </q-td>
             </template>
           </q-table>
           </div>
@@ -234,7 +250,7 @@
         </q-card-section>
           <div class="row q-gutter-lg flex flex-center">
             <q-table
-              class="q-mt-xl"
+              class="q-mt-xl table-wrap-text"
               flat
               bordered
               color="primary"
@@ -245,7 +261,14 @@
               row-key="Id"
             >
             <template v-slot:body-cell-action="props">
-              <q-btn flat color="purple-7" icon="delete_outline" @click="deleteResponseRow(props.row)"/>
+              <q-td :props="props" class="action-cell">
+                <q-btn flat color="purple-7" icon="delete_outline" @click="deleteResponseRow(props.row)"/>
+              </q-td>
+            </template>
+            <template v-slot:body-cell="props">
+              <q-td :props="props" :class="['wrap-cell']">
+                {{ props.value }}
+              </q-td>
             </template>
           </q-table>
           </div>
@@ -837,5 +860,55 @@ onMounted(async () => {
 }
 .bg-rose {
   background-color: #FFF4FF;
+}
+
+/* Styles pour empêcher le scroll horizontal et activer le retour à la ligne */
+.table-wrap-text {
+  overflow-x: hidden !important;
+  width: 100%;
+}
+
+.table-wrap-text :deep(.q-table__container) {
+  overflow-x: hidden !important;
+}
+
+.table-wrap-text :deep(.q-table__middle) {
+  overflow-x: hidden !important;
+}
+
+.table-wrap-text :deep(table) {
+  table-layout: auto;
+  width: 100%;
+}
+
+.wrap-cell {
+  word-wrap: break-word !important;
+  word-break: break-word !important;
+  white-space: normal !important;
+  overflow-wrap: break-word !important;
+}
+
+/* Toutes les cellules avec retour à la ligne et largeur adaptative */
+.table-wrap-text :deep(.q-td),
+.table-wrap-text :deep(.q-th) {
+  word-wrap: break-word !important;
+  word-break: break-word !important;
+  white-space: normal !important;
+  overflow-wrap: break-word !important;
+  width: auto;
+  min-width: 0;
+}
+
+/* Colonnes Actions - largeur adaptative et pas de retour à la ligne */
+.action-cell {
+  white-space: nowrap !important;
+  width: auto !important;
+  min-width: 100px;
+}
+
+/* Permet aux colonnes de s'adapter au contenu */
+.table-wrap-text :deep(.q-table__top),
+.table-wrap-text :deep(.q-table__bottom) {
+  overflow-x: hidden;
 }
 </style>
