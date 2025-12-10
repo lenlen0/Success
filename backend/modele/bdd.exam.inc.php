@@ -102,6 +102,25 @@ class Exam extends ConnexionPDO {
         }
         return $resultat;
     }
+
+    public function getExamHistoryByID($id_s11) {
+        $resultat = array();
+        try {
+            $req = $this->conn->prepare("SELECT e.idExam, e.name AS exam_name, te.date_exam, e.status, e.code, ROUND(AVG(te.grade), 2) AS avg_grade, e.idQuizz
+            FROM Exam e
+            INNER JOIN TakeExam te ON e.idExam = te.idExam
+            WHERE te.id_s11 = :id_s11
+            GROUP BY e.name, te.date_exam, e.status, e.code
+            ORDER BY te.date_exam DESC");
+            $req->bindValue(':id_s11', $id_s11, PDO::PARAM_INT);
+            $req->execute();
+
+            $resultat = $req->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            die($e->getMessage());
+        }
+        return $resultat;
+    }
 }
 
 ?>
