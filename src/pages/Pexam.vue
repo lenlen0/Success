@@ -166,7 +166,7 @@ function forceTo1or0(val) {
 // 1. Config Examen
 async function getExamDetails(examId) {
   try {
-    const url = `https://10.0.52.142/success/api.php/show_exam/${examId}`;
+    const url = `http://10.0.52.142/success/api.php/show_exam/${examId}`;
     const response = await fetch(url);
     if (response.ok) {
       const data = await response.json();
@@ -193,7 +193,7 @@ async function getExamDetails(examId) {
 // 2. Questions
 async function getQuestionsFromQuiz(quizId) {
   try {
-    const url = `https://10.0.52.142/success/api.php/show_question/${quizId}`;
+    const url = `http://10.0.52.142/success/api.php/show_question/${quizId}`;
     const response = await fetch(url);
     if (!response.ok) throw new Error(`Erreur API (${response.status})`);
 
@@ -225,7 +225,7 @@ async function loadCurrentQuestionData() {
 // 4. Charger Réponses
 async function loadAnswers(questionId) {
   try {
-    const url = `https://10.0.52.142/success/api.php/show_answer/${questionId}`;
+    const url = `http://10.0.52.142/success/api.php/show_answer/${questionId}`;
     const response = await fetch(url);
     if (response.ok) {
       const data = await response.json();
@@ -269,7 +269,7 @@ function nextQuestion() {
 // Vérification
 async function getAnswerStatus(questionId, answerId) {
   try {
-    const url = `https://10.0.52.142/success/api.php/show_answer/${questionId}`;
+    const url = `http://10.0.52.142/success/api.php/show_answer/${questionId}`;
     const response = await fetch(url);
     if (response.ok) {
       const data = await response.json();
@@ -353,7 +353,7 @@ async function calculateGrade(userAnswers) {
 // Envoi
 async function submitExam(answer, grade) {
   try {
-    const url = "https://10.0.52.142/success/api.php/user_result_exam";
+    const url = "http://10.0.52.142/success/api.php/user_result_exam";
     const response = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
