@@ -431,6 +431,7 @@ IMPORTANT :
 - "idQuestion" doit être EXACTEMENT l'ID donné ci-dessus.
 - NE PAS réindexer les ID.
 - NE PAS créer de numérotation automatique.
+- NE PAS dépasser 30 mots par réponse, chaque réponse ne doit pas faire impérativement 30 mots.
 `;
 
     const body = {
@@ -597,6 +598,7 @@ Remplace "idQuizz" par un texte correspondant à : ${id}.
 Remplace "idT" par un id différent pour chaques questions ayant impérativement la forme suivante : q1 pour la première des questions et ainsi de suite.
 
 Répète autant que necessaire le format JSON obligatoirement en adéquation avec le nombres de questions demandées.
+- NE PAS dépasser 30 mots par question, chaque question ne doit pas faire impérativement 30 mots.
 `
 
     const body = {
