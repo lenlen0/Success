@@ -9,7 +9,7 @@ class Exam extends ConnexionPDO {
         try {
             $this->conn->exec("SET sql_mode=(SELECT REPLACE(@@sql_mode, 'ONLY_FULL_GROUP_BY', ''))");
 
-            $req = $this->conn->prepare("SELECT e.idExam, e.name AS exam_name, e.dateExam, e.status, e.code,
+            $req = $this->conn->prepare("SELECT e.idExam, e.name AS exam_name, e.dateExam, e.status, e.code, e.scale, e.hasMalus,
                     QU.name AS quizz_name, QU.idQuizz,
                     g.idGroup, g.name AS group_name,
                     ROUND(AVG(te.grade), 2) AS avg_grade
@@ -18,7 +18,7 @@ class Exam extends ConnexionPDO {
                 INNER JOIN `Group` g ON e.idGroup = g.idGroup
                 LEFT JOIN TakeExam te ON e.idExam = te.idExam
                 WHERE e.idExam = :idExam
-                GROUP BY e.idExam, e.name, e.dateExam, e.status, e.code, QU.name, QU.idQuizz, g.idGroup, g.name
+                GROUP BY e.idExam, e.name, e.dateExam, e.status, e.code, e.scale, e.hasMalus, QU.name, QU.idQuizz, g.idGroup, g.name
                 ORDER BY e.idExam
             ");
             $req->bindValue(':idExam', $idExam, PDO::PARAM_INT);
