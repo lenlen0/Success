@@ -528,7 +528,7 @@ $tab_resource = [
     ],
     'show_exam' => [
         'model' => $Exam,
-        'requeteByID' => 'getExamByIDUser',
+        'requeteByID' => 'getExamByIDExam',
         'requete' => 'getAllExam'
     ],
     'show_group' => [
