@@ -66,7 +66,7 @@
             
             <div class="column items-center">
               <div class="text-h4 text-purple-7 text-weight-bold">{{ maxAvgGrade }}%</div>
-              <div class="text-subtitle1 text-grey-8">Meilleure Note</div>
+              <div class="text-subtitle1 text-grey-8">Meilleure Note Obtenue</div>
             </div>
           </div>
         </q-card-section>
