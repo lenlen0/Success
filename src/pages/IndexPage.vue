@@ -13,7 +13,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { onMounted, ref } from 'vue';
 import { Cookies } from 'quasar';
 import { useRouter } from 'vue-router';
 
@@ -85,5 +85,12 @@ async function getMyslfInfo() {
     console.error('Impossible de charger les utilisateurs :', err)
   }
 }
+
+onMounted(async () => {
+  const existingCookie = Cookies.get('token_user')
+  if(existingCookie) {
+    Cookies.remove('token_user')
+  }
+})
 
 </script>
