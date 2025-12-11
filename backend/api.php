@@ -495,7 +495,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 exit;
             }
 
-            echo json_encode($getAnswers, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+        case 'update_take_exam':
+            if (empty($data['id_s11']) || empty($data['idExam']) || empty($data['answer']) || empty($data['grade'])) {
+                http_response_code(422);
+                echo json_encode(["status" => "error", "message" => "Champs 'id_s11', 'idExam', 'answer' et 'grade' requis pour l'update."]);
+                exit;
+            }
+
+            $UpdateTakeExam = $TakeExam->updateTakeExam($data['id_s11'], $data['idExam'], $data['answer'], $data['grade']);
+
+            if (!$UpdateTakeExam) {
+                http_response_code(500);
+                echo json_encode(["status" => "error"]);
+                exit;
+            }
+
+            echo json_encode(["status" => "success"], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
             exit;
 
         default:
