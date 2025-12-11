@@ -47,45 +47,53 @@ const routes = [
     ]
   },
 
-{
-    path: '/Utilisateurs',
+  {
+      path: '/Utilisateurs',
+      component: () => import('layouts/AdminLayout.vue'),
+      children: [
+        { path: '', component: () => import('pages/DidierPage.vue') }
+      ]
+  },
+
+  {
+      path: '/ExamU',
+      component: () => import('layouts/UserLayout.vue'),
+      children: [
+        { path: '', component: () => import('pages/ExamU.vue') }
+      ]
+  },
+
+  {
+      path: '/AccueilU',
+      component: () => import('layouts/UserLayout.vue'),
+      children: [
+        { path: '', component: () => import('pages/AccueilU.vue') }
+      ]
+  },
+
+  {
+    path: '/Accueil',
     component: () => import('layouts/AdminLayout.vue'),
     children: [
-      { path: '', component: () => import('pages/DidierPage.vue') }
-    ]
- },
-
-{
-    path: '/ExamU',
-    component: () => import('layouts/UserLayout.vue'),
-    children: [
-      { path: '', component: () => import('pages/ExamU.vue') }
-    ]
- },
-
- {
-    path: '/AccueilU',
-    component: () => import('layouts/UserLayout.vue'),
-    children: [
-      { path: '', component: () => import('pages/AccueilU.vue') }
-    ]
- },
-
- {
-  path: '/Accueil',
-  component: () => import('layouts/AdminLayout.vue'),
-  children: [
-    { path: '', component: () => import('pages/AccueilPage.vue') }
-  ]
-},
-
- {
-    path: '/Pexam',
-    component: () => import('layouts/UserLayout.vue'),
-    children: [
-      { path: '', component: () => import('pages/Pexam.vue') }
+      { path: '', component: () => import('pages/AccueilPage.vue') }
     ]
   },
+
+  {
+      path: '/Pexam',
+      component: () => import('layouts/UserLayout.vue'),
+      children: [
+        { path: '', component: () => import('pages/Pexam.vue') }
+      ]
+    },
+
+    {
+      path: '/PexamE',
+      component: () => import('layouts/UserLayout.vue'),
+      children: [
+        { path: '', component: () => import('pages/PexamE.vue') }
+      ]
+    },
 
   {
     path: '/:catchAll(.*)*',

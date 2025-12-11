@@ -35,6 +35,23 @@ class TakeExam extends ConnexionPDO {
         }
         return $resultat;
     }
+
+    public function updateTakeExam($id_s11, $idExam, $answer, $grade) {
+        try {
+            $answer_json = json_encode($answer);
+
+            $req = $this->conn->prepare("UPDATE TakeExam SET answer = :answer, grade = :grade
+            WHERE id_s11 = :id_s11 AND idExam = :idExam");
+            $req->bindValue(':id_s11', $id_s11, PDO::PARAM_INT);
+            $req->bindValue(':idExam', $idExam, PDO::PARAM_INT);
+            $req->bindValue(':answer', $answer_json, PDO::PARAM_STR);
+            $req->bindValue(':grade', $grade, PDO::PARAM_STR);
+            $resultat = $req->execute();
+        } catch (PDOException $e) {
+            die($e->getMessage());
+        }
+        return $resultat;
+    }
 }
 
 ?>

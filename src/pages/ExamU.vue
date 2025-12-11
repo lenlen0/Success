@@ -320,7 +320,13 @@ async function detailsRow(row) {
 
 function retryExam(row) {
   if (row.status === "Entrainement") {
-    alert("Réaliser le renvoi vers l'examen.")
+    router.push({
+      path: '/PexamE',
+      query: {
+        idExam: row.idExam,
+        idQuizz: row.idQuizz
+      }
+    });
   } else {
     alert("Examen déja passer, impossible de le repasser.")
   }
