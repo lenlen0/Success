@@ -1,28 +1,28 @@
 <template>
   <q-page class="flex flex-center q-pa-lg" style="background-color: #FFF4FF;">
-    
+
     <div class="column items-center q-gutter-xl full-width" style="max-width: 1200px;">
-      
+
       <q-card class="q-pa-lg full-width" flat bordered>
         <q-card-section>
           <div class="flex-left text-center">
             <p class="q-mb-md text-h4 text-purple-12">Entrer votre code d'évaluation</p>
             <div style="max-width: 400px; margin: auto;">
-              <q-input 
-                rounded 
-                outlined 
-                v-model="text" 
-                label="Exemple : P9LN01" 
-                class="col q-mb-md" 
+              <q-input
+                rounded
+                outlined
+                v-model="text"
+                label="Exemple : P9LN01"
+                class="col q-mb-md"
                 @keyup.enter="verifyCode"
               />
-              <q-btn 
-                unelevated 
-                rounded 
-                color="purple-7" 
-                label="Entrer" 
-                class="q-px-xl q-py-sm" 
-                @click="verifyCode" 
+              <q-btn
+                unelevated
+                rounded
+                color="purple-7"
+                label="Entrer"
+                class="q-px-xl q-py-sm"
+                @click="verifyCode"
                 :loading="loading"
               />
             </div>
@@ -35,15 +35,15 @@
           </div>
         </q-card-section>
       </q-card>
-      
+
       <q-card class="q-pa-lg full-width" flat bordered>
         <q-card-section>
           <div class="text-h5 text-purple-12 text-weight-bold">Statistiques de mes résultats</div>
-          
+
           <div class="row q-gutter-xl q-mt-md justify-around">
             <div class="column items-center">
               <q-knob
-                :model-value="averageGrade" 
+                :model-value="averageGrade"
                 show-value
                 size="100px"
                 :thickness="0.22"
@@ -54,7 +54,7 @@
                 :max="100"
                 readonly
               >
-                {{ displayAverageGrade }}% 
+                {{ displayAverageGrade }}%
               </q-knob>
               <div class="text-subtitle1 text-grey-8 q-mt-sm">Moyenne Générale</div>
             </div>
@@ -63,7 +63,7 @@
               <div class="text-h4 text-purple-7 text-weight-bold">{{ totalExams }}</div>
               <div class="text-subtitle1 text-grey-8">Évaluations Passées</div>
             </div>
-            
+
             <div class="column items-center">
               <div class="text-h4 text-purple-7 text-weight-bold">{{ maxAvgGrade }}%</div>
               <div class="text-subtitle1 text-grey-8">Meilleure Note Obtenue</div>
@@ -103,15 +103,15 @@
                 <span>total en 100%</span>
               </div>
               <div class="bar-chart-grid">
-                <div 
-                  v-for="(item, index) in chartData" 
-                  :key="index" 
+                <div
+                  v-for="(item, index) in chartData"
+                  :key="index"
                   class="chart-item column items-center"
                 >
                   <div class="bar-label text-caption text-purple-12">{{ item.label }}</div>
-                  
-                  <div 
-                    class="chart-bar" 
+
+                  <div
+                    class="chart-bar"
                     :style="{ height: item.percentage + '%', backgroundColor: getColor(index) }"
                   >
                     <span class="bar-value text-white text-weight-bold">{{ item.percentage }}%</span>
@@ -146,9 +146,9 @@ const loading = ref(false);
 const errorMessage = ref('');
 
 // --- 2. États pour les Statistiques (Historique) ---
-const examsData = ref([]) 
-const selectedExams = ref([]) 
-const examOptions = ref([]) 
+const examsData = ref([])
+const selectedExams = ref([])
+const examOptions = ref([])
 
 
 // ==============================================
@@ -156,40 +156,54 @@ const examOptions = ref([])
 // ==============================================
 
 const verifyCode = async () => {
-    if (!text.value.trim()) {
-      errorMessage.value = 'Veuillez entrer un code';
-      return;
-    }
-    loading.value = true;
-    errorMessage.value = '';
-    try {
-      // Utilisation de l'endpoint global pour trouver l'examen à partir du code
-      const response = await fetch(`${BASE_API_URL}/show_exam`); 
-      const data = await response.json();
+  if (!text.value.trim()) {
+    errorMessage.value = 'Veuillez entrer un code';
+    return;
+  }
 
-      if (response.ok && Array.isArray(data)) {
-        const exam = data.find(e => String(e.code).trim() === text.value.trim());
+  loading.value = true;
+  errorMessage.value = '';
 
-        if (exam) {
+  try {
+    const response = await fetch('http://10.0.52.142/success/api.php/show_exam', {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+
+    const data = await response.json();
+
+    if (response.ok && Array.isArray(data)) {
+      // Chercher l'examen avec le code saisi
+      const exam = data.find(e => String(e.code) === text.value.trim());
+
+      if (exam) {
+        if (exam.status === 'Ouvert' || exam.status === 'Entrainement') {
+          // Redirection vers la page Pexam avec les paramètres
           router.push({
             path: '/Pexam',
             query: {
               idExam: exam.idExam,
-              idQuizz: exam.idQuizz
+              idQuizz: exam.idQuizz,
+              status: exam.status
             }
           });
         } else {
-          errorMessage.value = 'Code d\'examen invalide';
+          errorMessage.value = "Cet examen est fermé, impossible de le passer.";
         }
       } else {
-        errorMessage.value = 'Erreur lors de la récupération des examens';
+        errorMessage.value = 'Code d\'examen invalide';
       }
-    } catch (error) {
-      console.error('Erreur lors de la vérification du code:', error);
-      errorMessage.value = 'Une erreur est survenue lors de la vérification du code';
-    } finally {
-      loading.value = false;
+    } else {
+      errorMessage.value = 'Erreur lors de la récupération des examens';
     }
+  } catch (error) {
+    console.error('Erreur lors de la vérification du code:', error);
+    errorMessage.value = 'Une erreur est survenue lors de la vérification du code';
+  } finally {
+    loading.value = false;
+  }
 };
 
 
@@ -199,15 +213,15 @@ const verifyCode = async () => {
 
 const chartData = computed(() => {
     let filteredData = examsData.value;
-    
+
     if (selectedExams.value.length > 0) {
-        filteredData = filteredData.filter(item => 
+        filteredData = filteredData.filter(item =>
             selectedExams.value.includes(item.idExam)
         );
     }
-    
+
     return filteredData.map(item => ({
-        label: item.nom, 
+        label: item.nom,
         percentage: parseFloat(item.reussite.replace('%', '')) || 0,
         date: item.date_exam
     })).sort((a, b) => new Date(a.date) - new Date(b.date));
@@ -215,35 +229,35 @@ const chartData = computed(() => {
 
 function getColor(index) {
   const colors = [
-    '#9C27B0', 
-    '#4DB6AC', 
-    '#FFB74D', 
-    '#64B5F6', 
-    '#E91E63' 
+    '#9C27B0',
+    '#4DB6AC',
+    '#FFB74D',
+    '#64B5F6',
+    '#E91E63'
   ];
   return colors[index % colors.length];
 }
 
 const averageGrade = computed(() => {
-    const grades = chartData.value.map(item => item.percentage); 
+    const grades = chartData.value.map(item => item.percentage);
 
-    if (grades.length === 0) return 0; 
-    
+    if (grades.length === 0) return 0;
+
     const sum = grades.reduce((a, b) => a + b, 0);
-    return parseFloat((sum / grades.length).toFixed(1)); 
+    return parseFloat((sum / grades.length).toFixed(1));
 })
 
 const displayAverageGrade = computed(() => {
     return averageGrade.value.toFixed(1);
 })
 
-const totalExams = computed(() => examsData.value.length) 
+const totalExams = computed(() => examsData.value.length)
 
 const maxAvgGrade = computed(() => {
   if (chartData.value.length === 0) return '0.0'
-  
+
   const grades = chartData.value.map(item => item.percentage)
-  return Math.max(...grades).toFixed(1) 
+  return Math.max(...grades).toFixed(1)
 })
 
 
@@ -255,30 +269,30 @@ async function loadExamsForStats() {
         const url = `${BASE_API_URL}/show_passed_exam/${currentUserId.value}`
         const res = await fetch(url)
         const data = await res.json()
-        
+
         if (Array.isArray(data)) {
             examsData.value = data.map(item => {
-                
+
                 // ⚠️ ADAPTATION SELON LA RÉPONSE DE L'API :
-                // item.user_grade si vous avez fait la modification BDD, 
+                // item.user_grade si vous avez fait la modification BDD,
                 // sinon item.avg_grade si vous n'avez pas touché le PHP
                 const gradeField = item.user_grade !== undefined ? item.user_grade : item.avg_grade;
 
                 return {
                     nom: item.exam_name,
                     // Note individuelle mise à l'échelle (ex: si la note max est 20 et item.grade = 15, on fait 15 * 5 = 75%)
-                    reussite: `${gradeField !== null ? (gradeField * 5).toFixed(1) : 0}%`, 
+                    reussite: `${gradeField !== null ? (gradeField * 5).toFixed(1) : 0}%`,
                     idExam: parseInt(item.idExam),
                     idQuizz: item.idQuizz,
                     date_exam: item.date_exam
                 }
             })
-            
+
             // Options de sélection (basées sur l'historique de l'utilisateur)
             examOptions.value = examsData.value
                 .map(item => ({
                     label: item.nom,
-                    value: item.idExam 
+                    value: item.idExam
                 }));
         } else {
              examsData.value = []
@@ -293,13 +307,13 @@ async function loadExamsForStats() {
 
 // --- Chargement initial ---
 onMounted(async () => {
-    await loadExamsForStats() 
+    await loadExamsForStats()
 })
 </script>
 
 <style scoped>
 /* COULEURS ET GÉNÉRAL */
-.text-purple-12 { color: #8E24AA; } 
+.text-purple-12 { color: #8E24AA; }
 .bg-rose { background-color: #FFF4FF; }
 
 /* STYLE DU GRAPHIQUE À BARRES */
@@ -311,14 +325,14 @@ onMounted(async () => {
 }
 
 .bar-chart-header {
-    height: 10px; 
-    padding-right: 15px; 
+    height: 10px;
+    padding-right: 15px;
 }
 
 .bar-chart-grid {
   display: flex;
-  align-items: flex-end; 
-  height: 300px; 
+  align-items: flex-end;
+  height: 300px;
   border-left: 1px solid #ddd;
   border-bottom: 1px solid #ddd;
   padding-left: 10px;
@@ -327,8 +341,8 @@ onMounted(async () => {
 
 .chart-item {
   height: 100%;
-  flex: 1; 
-  justify-content: flex-end; 
+  flex: 1;
+  justify-content: flex-end;
 }
 
 .chart-bar {
@@ -338,8 +352,8 @@ onMounted(async () => {
   display: flex;
   justify-content: center;
   align-items: flex-start;
-  transition: height 0.8s ease-out; 
-  min-height: 5px; 
+  transition: height 0.8s ease-out;
+  min-height: 5px;
 }
 
 .bar-value {
@@ -349,7 +363,7 @@ onMounted(async () => {
 
 .bar-label {
     margin-top: 5px;
-    height: 30px; 
+    height: 30px;
     text-align: center;
     overflow: hidden;
     white-space: nowrap;
