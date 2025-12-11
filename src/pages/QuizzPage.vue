@@ -91,6 +91,9 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { verifyR } from '../composables/verification'
+
+const { verifyRole } = verifyR()
 
 // NOTE: J'ai déplacé columns ici pour qu'il soit accessible sans "return"
 const columns = [
@@ -187,6 +190,7 @@ async function loadQuizz() {
 
 // Lifecycle hooks fonctionnent de la même manière
 onMounted(() => {
+  verifyRole("admin", "/AccueilU")
   loadQuizz()
 });
 

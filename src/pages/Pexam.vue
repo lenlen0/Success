@@ -109,6 +109,9 @@ defineOptions({ name: 'PageExam' })
 
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { verifyUR } from '../composables/verificationU'
+
+const { verifyUserRole } = verifyUR()
 
 const route = useRoute()
 const router = useRouter()
@@ -139,6 +142,7 @@ const isLastQuestion = computed(() => {
 })
 
 onMounted(async () => {
+  verifyUserRole("admin", "logged_user", "/");
   loading.value = true
   errorMessage.value = null
 

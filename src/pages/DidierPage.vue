@@ -106,6 +106,9 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { verifyR } from '../composables/verification'
+
+const { verifyRole } = verifyR()
 
 const showDialog = ref(false)
 const showEditDialog = ref(false)
@@ -323,7 +326,10 @@ async function deleteRow(row) {
 
 
 // Chargement depuis ton API
-onMounted(loadUsers)
+onMounted(async () => {
+  verifyRole("admin", "/AccueilU")
+  await loadUsers();
+})
 </script>
 
 <style scoped>

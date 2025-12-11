@@ -307,6 +307,9 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
+import { verifyR } from '../composables/verification'
+
+const { verifyRole } = verifyR()
 
 const API_Gemini = "AIzaSyBec53Pcp8X4jq39FZshKrXXyvesBZXp4s";
 
@@ -902,6 +905,7 @@ async function deleteRow(row) {
 
 // Chargement depuis l'API
 onMounted(async () => {
+  verifyRole("admin", "/AccueilU")
   // Récupérer l'ID depuis les paramètres de l'URL
   idQuizz.value = route.query.idQuizz || null
 

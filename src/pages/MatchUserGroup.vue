@@ -3,7 +3,7 @@
       <div class="full-width q-pa-md">
         <!-- Titre -->
         <h4 class="text-purple-12 text-weight-bold q-mb-md text-center">Gérer les utilisateurs du groupe</h4>
-  
+
         <!-- Menu déroulant pour sélectionner le groupe -->
         <div class="row q-mb-lg justify-center">
           <div class="col-12 col-md-6">
@@ -22,7 +22,7 @@
             />
           </div>
         </div>
-  
+
         <!-- Deux tableaux côte à côte -->
         <div class="row q-gutter-sm no-wrap justify-center">
           <!-- Tableau de gauche : Tous les utilisateurs SAUF ceux du groupe -->
@@ -96,20 +96,23 @@
       </div>
     </q-page>
   </template>
-  
+
   <script setup>
   import { ref, computed, onMounted } from 'vue'
   import { useRoute } from 'vue-router'
-  
+  import { verifyR } from '../composables/verification'
+
+  const { verifyRole } = verifyR()
+
   const route = useRoute()
-  
+
   const selectedGroup = ref(null)
   const groups = ref([])
   const allUsers = ref([])
   const groupUsers = ref([])
   const selectedAvailableUsers = ref([])
   const selectedGroupUsers = ref([])
-  
+
   // Colonnes du tableau utilisateur
   const userColumns = [
     { name: 'Id', label: 'ID', align: 'left', field: 'Id', sortable: true },
@@ -117,7 +120,7 @@
     { name: 'Prenom', label: 'Prénom', align: 'left', field: 'Prenom', sortable: true },
     { name: 'role', label: 'Role', align: 'left', field: 'role', sortable: true }
   ]
-  
+
   // Utilisateurs disponibles (tous sauf ceux du groupe)
   const availableUsers = computed(() => {
     if (!selectedGroup.value || groupUsers.value.length === 0) {
@@ -126,13 +129,13 @@
     const groupUserIds = new Set(groupUsers.value.map(u => u.Id))
     return allUsers.value.filter(user => !groupUserIds.has(user.Id))
   })
-  
+
   // Charger tous les groupes
   async function loadGroups() {
     try {
       const response = await fetch('http://10.0.52.142/success/api.php/show_group/')
       if (!response.ok) throw new Error('Erreur HTTP ' + response.status)
-  
+
       const data = await response.json()
       groups.value = data.map(item => ({
         Id: item.idGroup,
@@ -143,13 +146,13 @@
       console.error('Impossible de charger les groupes :', err)
     }
   }
-  
+
   // Charger tous les utilisateurs
   async function loadAllUsers() {
     try {
       const response = await fetch('http://10.0.52.142/success/api.php/show_user')
       if (!response.ok) throw new Error('Erreur HTTP ' + response.status)
-  
+
       const data = await response.json()
       allUsers.value = data.map(item => ({
         Id: item.id_s11,
@@ -163,38 +166,38 @@
       console.error('Impossible de charger les utilisateurs :', err)
     }
   }
-  
+
   // Charger les utilisateurs du groupe sélectionné
   async function loadGroupUsers() {
     if (!selectedGroup.value) {
       groupUsers.value = []
       return
     }
-  
+
     try {
       // On récupère tous les utilisateurs et on filtre côté client
       // car il n'y a pas d'endpoint GET direct pour getUserByGroup
       // On va utiliser une approche différente : récupérer tous les utilisateurs
       // et filtrer ceux qui sont dans le groupe
-      
+
       // Pour l'instant, on va charger tous les utilisateurs et filtrer
       // En production, il faudrait un endpoint GET pour getUserByGroup
       await loadAllUsers()
-      
+
       // On va devoir faire une requête POST pour obtenir les utilisateurs du groupe
       // Ou utiliser une logique côté client basée sur les données disponibles
       // Pour simplifier, on va utiliser une approche où on charge tous les utilisateurs
       // et on filtre ceux qui sont dans le groupe sélectionné
-      
+
       // Note: Il faudrait idéalement un endpoint GET pour getUserByGroup
       // Pour l'instant, on va utiliser une méthode alternative
-      
+
       // On récupère les utilisateurs du groupe via une requête spéciale
       // Comme il n'y a pas d'endpoint GET direct, on va utiliser une logique différente
       // On va créer une fonction qui récupère les utilisateurs du groupe
-      
+
       const response = await fetch(`http://10.0.52.142/success/api.php/show_user_group/${selectedGroup.value}`)
-      
+
       if (response.ok) {
         const data = await response.json()
         groupUsers.value = data.map(item => ({
@@ -217,20 +220,20 @@
       // En cas d'erreur, on essaie une approche alternative
       groupUsers.value = []
     }
-    
+
     // Réinitialiser les sélections
     selectedAvailableUsers.value = []
     selectedGroupUsers.value = []
   }
-  
+
   // Ajouter des utilisateurs au groupe
   async function addUsersToGroup() {
     if (!selectedGroup.value || selectedAvailableUsers.value.length === 0) {
       return
     }
-  
+
     try {
-      const promises = selectedAvailableUsers.value.map(user => 
+      const promises = selectedAvailableUsers.value.map(user =>
         fetch('http://10.0.52.142/success/api.php/add_user_to_group', {
           method: 'POST',
           headers: {
@@ -242,10 +245,10 @@
           })
         })
       )
-  
+
       const results = await Promise.all(promises)
       const allSuccess = results.every(response => response.ok)
-  
+
       if (allSuccess) {
         // Recharger les données
         await loadGroupUsers()
@@ -258,15 +261,15 @@
       console.error('Erreur lors de l\'ajout des utilisateurs :', err)
     }
   }
-  
+
   // Retirer des utilisateurs du groupe
   async function removeUsersFromGroup() {
     if (!selectedGroup.value || selectedGroupUsers.value.length === 0) {
       return
     }
-  
+
     try {
-      const promises = selectedGroupUsers.value.map(user => 
+      const promises = selectedGroupUsers.value.map(user =>
         fetch('http://10.0.52.142/success/api.php/remove_user_from_group', {
           method: 'POST',
           headers: {
@@ -278,10 +281,10 @@
           })
         })
       )
-  
+
       const results = await Promise.all(promises)
       const allSuccess = results.every(response => response.ok)
-  
+
       if (allSuccess) {
         // Recharger les données
         await loadGroupUsers()
@@ -294,12 +297,13 @@
       console.error('Erreur lors de la suppression des utilisateurs :', err)
     }
   }
-  
+
   // Initialisation
   onMounted(async () => {
+    verifyRole("admin", "/AccueilU")
     await loadGroups()
     await loadAllUsers()
-    
+
     // Si un idGroup est passé en paramètre URL, le sélectionner
     const idGroup = route.query.idGroup
     if (idGroup) {
@@ -308,7 +312,7 @@
     }
   })
   </script>
-  
+
   <style scoped>
   .text-purple-12 {
     color: var(--q-color-purple-12);
@@ -317,5 +321,4 @@
     background-color: #FFF4FF;
   }
   </style>
-  
-  
+

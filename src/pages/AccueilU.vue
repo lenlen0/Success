@@ -133,6 +133,9 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
+import { verifyUR } from '../composables/verificationU'
+
+const { verifyUserRole } = verifyUR()
 
 const router = useRouter();
 
@@ -307,6 +310,7 @@ async function loadExamsForStats() {
 
 // --- Chargement initial ---
 onMounted(async () => {
+    verifyUserRole("admin", "logged_user", "/");
     await loadExamsForStats()
 })
 </script>

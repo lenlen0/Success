@@ -78,6 +78,9 @@
 import { ref } from 'vue'
 import { onMounted } from 'vue'
 import { useRouter } from 'vue-router';
+import { verifyUR } from '../composables/verificationU'
+
+const { verifyUserRole } = verifyUR()
 
 const router = useRouter();
 const rows = ref([])
@@ -335,6 +338,7 @@ function retryExam(row) {
 }
 
 onMounted(async () => {
+  verifyUserRole("admin", "logged_user", "/");
   await loadExamU(3)
 })
 </script>

@@ -116,6 +116,9 @@
 
 <script setup>
 import { ref, onMounted, computed } from 'vue'
+import { verifyR } from '../composables/verification'
+
+const { verifyRole } = verifyR()
 
 // --- 1. États Réactifs et Données ---
 const examsData = ref([])
@@ -228,10 +231,9 @@ async function loadExams() {
     }
 }
 
-
 // Chargement initial
 onMounted(async () => {
-    // Chargez les groupes en premier, puis les examens
+    verifyRole("admin", "/AccueilU")
     await loadGroups()
     await loadExams()
 })
