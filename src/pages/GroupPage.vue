@@ -78,7 +78,7 @@
             rounded
             color="purple-7"
             label="Modifier"
-            @click="editGroup(editingGroup.Id, editingGroup.Name)"
+            @click="editGroup(editingGroup.documentId, editingGroup.Name)"
           />
         </q-card-actions>
       </q-card>
@@ -89,6 +89,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { verifyR } from '../composables/verification'
+import { Cookies } from 'quasar';
 
 const { verifyRole } = verifyR()
 
@@ -96,9 +97,9 @@ const showDialog = ref(false)
 const showEditDialog = ref(false)
 const rows = ref([])
 const editingGroup = ref({
-  Id: null,
   Name: '',
-  nb_user: 0
+  nb_user: 0,
+  documentId: null
 })
 
 // Colonnes du tableau
@@ -115,18 +116,47 @@ const columns = [
 ]
 
 async function loadGroups() {
-  const response = await fetch('http://10.0.52.142/success/api.php/show_group/')
+  const token_user = Cookies.get('token_user')
+
+  const response = await fetch('http://10.0.52.187:1337/api/groups', {
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${token_user}`
+    }
+  })
+
   if (!response.ok) throw new Error('Erreur HTTP ' + response.status)
+  const { data: groups } = await response.json()
 
-  const data = await response.json()
+  const responseBelong = await fetch(
+    'http://10.0.52.187:1337/api/belonggroups?populate=*',
+    {
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token_user}`
+      }
+    }
+  )
 
-  // 🧩 Adapter les données à tes colonnes
-  rows.value = data.map(item => ({
-    Id: item.idGroup,
-    Nom: item.name,
-    nb_user: item.nb_user
-  }))
+  if (!responseBelong.ok) throw new Error('Erreur HTTP ' + responseBelong.status)
+  const { data: belongList } = await responseBelong.json()
+
+  rows.value = groups.map(group => {
+    const groupId = group.id
+
+    const countUsers = belongList.filter(bg =>
+      bg.id_group?.some(g => g.id === groupId)
+    ).length
+
+    return {
+      Id: group.id,
+      Nom: group.name,
+      documentId: group.documentId,
+      nb_user: countUsers
+    }
+  })
 }
+
 
 // Nouveau groupe
 const newGroup = ref({
@@ -140,40 +170,43 @@ function openAddDialog() {
 }
 
 async function addGroup(name) {
-  const response = await fetch("http://10.0.52.142/success/api.php/add_group", {
+  const token_user = Cookies.get('token_user')
+  const response = await fetch("http://10.0.52.187:1337/api/groups", {
     method: "POST",
     headers: {
-      "Content-Type": "application/json"
+      "Content-Type": "application/json",
+      'Authorization': `Bearer ${token_user}`
     },
     body: JSON.stringify({
-      name: name,
-      id_s11: 3
+      data: {
+        name: name
+      },
     })
   });
 
   if (!response.ok) {
     throw new Error("Erreur API " + response.status);
   }
-
   const data = await response.json();
 
-  if (data.status === "success") {
-    showDialog.value = false
-    await loadGroups()
-  }
+  await loadGroups();
+  showDialog.value = false
 
   return data;
 }
 
-async function editGroup(id, name) {
-  const response = await fetch("http://10.0.52.142/success/api.php/edit_group", {
-    method: "POST",
+async function editGroup(documentId, name) {
+  const token_user = Cookies.get('token_user')
+  const response = await fetch(`http://10.0.52.187:1337/api/groups/${documentId}`, {
+    method: "PUT",
     headers: {
-      "Content-Type": "application/json"
+      "Content-Type": "application/json",
+      'Authorization': `Bearer ${token_user}`
     },
     body: JSON.stringify({
-      idGroup: id,
-      name: name
+      data: {
+        name: name
+      },
     })
   });
 
@@ -181,21 +214,15 @@ async function editGroup(id, name) {
     throw new Error("Erreur API " + response.status);
   }
 
-  const data = await response.json();
-
-  if (data.status === "success") {
-    showEditDialog.value = false
-    await loadGroups()
-  }
-
-  return data;
+  showEditDialog.value = false
+  await loadGroups()
 }
 
 
 
 function editRow(row) {
   editingGroup.value = {
-    Id: row.Id,
+    documentId: row.documentId,
     Name: row.Nom,
     nb_user: row.nb_user
   }
@@ -203,28 +230,30 @@ function editRow(row) {
 }
 
 function goToMatchUser() {
-  if (editingGroup.value && editingGroup.value.Id) {
-    window.location.href = '/#/matchUser?idGroup=' + editingGroup.value.Id;
+  if (editingGroup.value && editingGroup.value.documentId) {
+    window.location.href = '/#/matchUser?documentId=' + editingGroup.value.documentId;
   } else {
     console.warn("Aucun ID de groupe trouvé.");
   }
 }
 
 async function deleteRow(row) {
-  const response = await fetch('http://10.0.52.142/success/api.php/del_group', {
-    method: 'POST',
+  const token_user = Cookies.get('token_user')
+  const documentId = row.documentId;
+
+  const response = await fetch(`http://10.0.52.187:1337/api/groups/${documentId}`, {
+    method: 'DELETE',
     headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({ idGroup: row.Id })
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token_user}`
+    }
   });
-  if (!response.ok) throw new Error('Erreur HTTP ' + response.status);
 
-  const data = await response.json();
-
-  if (data.status === 'success') {
-    await loadGroups();
+   if (!response.ok) {
+    throw new Error(`Erreur DELETE ${response.status}`)
   }
+
+  await loadGroups();
 }
 
 // Chargement depuis ton API
