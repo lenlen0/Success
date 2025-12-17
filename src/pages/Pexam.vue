@@ -316,20 +316,20 @@ async function calculateGrade(userAnswers) {
     const userAnswer = userAnswers[i];
 
     if (userAnswer === null) {
-      console.log(`Question ${i+1} : ⚪ Pas de réponse -> 0 point`);
+      console.log(`Question ${i+1} : Pas de réponse -> 0 point`);
       rawScore += 0;
     } else {
       const status = await getAnswerStatus(questionId, userAnswer);
 
       if (status === 1) {
-        console.log(`Question ${i+1} : ✅ Bonne réponse -> +1 point`);
+        console.log(`Question ${i+1} : Bonne réponse -> +1 point`);
         rawScore += 1;
       } else if (status === -1) {
         if (hasMalus.value === 1) {
-          console.log(`Question ${i+1} : ❌ Mauvaise réponse (Malus ACTIF) -> -1 point`);
+          console.log(`Question ${i+1} : Mauvaise réponse (Malus ACTIF) -> -1 point`);
           rawScore += -1;
         } else {
-          console.log(`Question ${i+1} : ❌ Mauvaise réponse (Sans Malus) -> 0 point`);
+          console.log(`Question ${i+1} : Mauvaise réponse (Sans Malus) -> 0 point`);
           rawScore += 0;
         }
       }
