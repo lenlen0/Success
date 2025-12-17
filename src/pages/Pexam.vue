@@ -70,7 +70,7 @@
                 color="grey-7"
                 flat
                 icon="skip_next"
-                @click="nextQuestion"
+                @click="skipQuestion"
               />
               <div v-else></div>
 
@@ -255,12 +255,8 @@ function toggleAnswer(ansId) {
   selectedAnswers.value[currentIndex.value] = selectedAnswer.value;
 }
 
-function recordCurrentAnswer() {
-  selectedAnswers.value[currentIndex.value] = selectedAnswer.value;
-}
-
-function nextQuestion() {
-  recordCurrentAnswer();
+function skipQuestion() {
+  selectedAnswers.value[currentIndex.value] = null;
   if (currentIndex.value < questionsList.value.length - 1) {
     currentIndex.value++;
     loading.value = true;
@@ -380,14 +376,18 @@ async function submitExam(answer, grade) {
 }
 
 function validateAnswer() {
-  recordCurrentAnswer();
+  selectedAnswers.value[currentIndex.value] = selectedAnswer.value;
   if (currentIndex.value < questionsList.value.length - 1) {
-    nextQuestion();
+    currentIndex.value++;
+    loading.value = true;
+    loadCurrentQuestionData().then(() => {
+      loading.value = false;
+    });
   }
 }
 
 function finishExam() {
-  recordCurrentAnswer();
+  selectedAnswers.value[currentIndex.value] = selectedAnswer.value;
   cleanAnswersArray();
 
   ;(async () => {
