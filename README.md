@@ -69,10 +69,3 @@ Avant de cloner, assurez-vous d'avoir installé :
     ```bash
     npm run dev
     ```
-    
-    
-    
- /\_/\  
-( o.o ) 
- > ^ <  
-Tié Un TIGRE WOLA
