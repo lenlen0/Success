@@ -72,8 +72,7 @@ Avant de cloner, assurez-vous d'avoir installé :
     
     
     
-    
-      /\_/\  
-     ( o.o ) 
-      > ^ <  
+ /\_/\  
+( o.o ) 
+ > ^ <  
 Tié Un TIGRE WOLA
