@@ -212,40 +212,39 @@ async function loadExams() {
       }
     })
     if (!response.ok) throw new Error('Erreur HTTP ' + response.status)
+    const { data: exams } = await response.json()
 
-    const data = await response.json()
-    console.log('Données reçues de l\'API exams:', data)
-
-    // Vérifier si data est un tableau directement
-    if (Array.isArray(data)) {
-      rows.value = data.map(item => ({
-        Id: item.id,
-        nom: item.name,
-        date: item.publishedAt,
-        qcm: item.idQuizz.name,
-        groupe: item.idGroup.name,
-        status: item.status,
-        reussite: `${item.avg_grade !== null ? (item.avg_grade * 5).toFixed(0) : 0}%`,
-        Code: item.code
-      }))
-    } else if (data && data.data && Array.isArray(data.data)) {
-      // Si la réponse a la structure { data: [...] }
-      rows.value = data.data.map(item => ({
-        Id: item.id,
-        nom: item.name,
-        date: item.publishedAt,
-        qcm: item.idQuizz.name,
-        groupe: item.idGroup.name,
-        status: item.status,
-        reussite: `${item.avg_grade !== null ? (item.avg_grade * 5).toFixed(0) : 0}%`,
-        Code: item.code
-      }))
-    } else {
-      // Si la structure est inattendue
-      console.warn('Structure inattendue des données:', data)
-      rows.value = []
+    const responseTakeExam = await fetch(
+    'http://10.0.52.187:1337/api/takeexams?populate=*',
+    {
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token_user}`
+      }
     }
+  )
 
+  if (!responseTakeExam.ok) throw new Error('Erreur HTTP ' + responseTakeExam.status)
+  const { data: TakeExams } = await responseTakeExam.json()
+
+  rows.value = exams.map(exam => {
+    const examID = exam.id
+
+    const moyenneNote = TakeExams.filter(takeexam =>
+      takeexam.idExam?.id === examID
+    ).length
+
+    return {
+      Id: exam.id,
+      nom: exam.name,
+      date: exam.publishedAt,
+      qcm: exam.idQuizz?.name ?? '',
+      groupe: exam.idGroup?.map(g => g.name).join(', ') ?? '',
+      status: exam.role,
+      reussite: moyenneNote,
+      Code: exam.code
+    }
+  })
   } catch (err) {
     console.error('Impossible de charger les examens :', err)
   }
