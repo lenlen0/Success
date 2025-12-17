@@ -49,24 +49,17 @@
         <q-card-section class="bg-purple-1 text-purple-10">
         </q-card-section>
 
-        <q-card-section class="q-pt-none q-pb-sm">
-          <div class="row items-center q-gutter-md q-mt-md" v-if="isEditing">
-            <q-btn round color="purple-7" icon="assignment" aria-label="Questions" @click="goToQuestionPage"/>
-            <span class="text-body2">Gérer les questions</span>
-          </div>
-        </q-card-section>
-
         <q-card-section class="q-pt-sm">
           <div class="column q-gutter-md">
             <q-input
-              v-model="currentQuizz.name"
+              v-model="newQuizz.name"
               rounded
               outlined
-              label="Nom du Quiz"
+              label="Nom du Quizz"
             />
 
             <q-toggle
-              v-model="currentQuizz.isEnable"
+              v-model="newQuizz.isEnable"
               label="Activer le questionnaire (Visible)"
               color="purple-7"
             />
@@ -80,8 +73,52 @@
             unelevated
             rounded
             color="purple-7"
-            :label="isEditing ? 'Modifier' : 'Ajouter'"
-            @click="addQuizz(currentQuizz.name, currentQuizz.isEnable)"
+            label="Ajouter"
+            @click="addQuizz()"
+          />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
+
+    <!-- Dialog d'edit-->
+    <q-dialog v-model="showEditDialog" persistent>
+      <q-card style="min-width: 400px;">
+        <q-card-section class="bg-purple-1 text-purple-10">
+        </q-card-section>
+
+        <q-card-section class="q-pt-none q-pb-sm">
+          <div class="row items-center q-gutter-md q-mt-md">
+            <q-btn round color="purple-7" icon="assignment" aria-label="Questions" @click="goToQuestionPage"/>
+            <span class="text-body2">Gérer les questions</span>
+          </div>
+        </q-card-section>
+
+        <q-card-section class="q-pt-sm">
+          <div class="column q-gutter-md">
+            <q-input
+              v-model="editingQuizz.name"
+              rounded
+              outlined
+              label="Nom du Quizz"
+            />
+
+            <q-toggle
+              v-model="editingQuizz.isEnable"
+              label="Activer le questionnaire (Visible)"
+              color="purple-7"
+            />
+          </div>
+
+        </q-card-section>
+
+        <q-card-actions align="right">
+          <q-btn unelevated rounded color="purple-7" label="Annuler" v-close-popup />
+          <q-btn
+            unelevated
+            rounded
+            color="purple-7"
+            label="Modifier"
+            @click="editQuizz()"
           />
         </q-card-actions>
       </q-card>
@@ -90,14 +127,15 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import { verifyR } from '../composables/verification'
+import { Cookies } from 'quasar'
 
 const { verifyRole } = verifyR()
 
 // NOTE: J'ai déplacé columns ici pour qu'il soit accessible sans "return"
 const columns = [
-  { name: 'NOM', align: 'center', label: 'NOM', field: 'NOM', sortable: true },
+  { name: 'name', align: 'center', label: 'NOM', field: 'name', sortable: true },
   { name: 'Nombre_De_Questions', label: 'Nombre De Questions', field: 'Nombre_De_Questions', align: 'center'},
   { name: 'isEnableBoolean', label: 'Statut', field: 'isEnableBoolean', align: 'center'},
   { name: 'Action', label: 'Action', field: 'id', align: 'center' }
@@ -105,87 +143,119 @@ const columns = [
 
 const rows = ref([])
 const showDialog = ref(false)
+const showEditDialog = ref(false)
 
-
-const editedQuizz = ref(null)
-const currentQuizz = ref({
+const newQuizz = ref({
   name: '',
   isEnable: false
 })
 
-const isEditing = computed(() => editedQuizz.value !== null)
-
-async function addQuizz(name, isEnable) {
-  try {
-    const endpoint = isEditing.value ? "http://10.0.52.142/success/api.php/edit_quizz" : "http://10.0.52.142/success/api.php/add_quizz"
-
-    const body = isEditing.value
-      ? {
-          idQuizz: editedQuizz.value.id,
-          name: name,
-          isEnable: isEnable
-        }
-      : {
-          name: name,
-          isEnable: isEnable,
-          id_s11: 3
-        }
-
-    const response = await fetch(endpoint, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(body)
-    });
-
-    if (!response.ok) {
-      throw new Error("Erreur API " + response.status);
-    }
-
-    const data = await response.json();
-    console.log(isEditing.value ? "Quizz modifié :" : "Quizz ajouté :", data);
-
-    if (data.status === "success") {
-      showDialog.value = false
-      currentQuizz.value = { name: '', isEnable: false }
-      editedQuizz.value = null
-      await loadQuizz()
-    }
-
-    return data;
-
-  } catch (err) {
-    console.error("Erreur", err);
-  }
-}
+const editingQuizz = ref({
+  name: '',
+  isEnable: false,
+  documentId: ''
+})
 
 async function loadQuizz() {
-  try {
-    const url = 'http://10.0.52.142/success/api.php/show_quizz';
+  const token_user = Cookies.get('token_user')
 
-    const response = await fetch(url)
-    if (!response.ok) throw new Error('Erreur HTTP ' + response.status)
+  const response = await fetch('http://10.0.52.187:1337/api/quizzes', {
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${token_user}`
+    }
+  })
 
-    const data = await response.json()
+  if (!response.ok) throw new Error('Erreur HTTP ' + response.status)
+  const { data: quizzes } = await response.json()
 
-    const payload = Array.isArray(data) ? data : (Array.isArray(data.data) ? data.data : [])
+  const responseQuestions = await fetch(
+    'http://10.0.52.187:1337/api/questions?populate=*',
+    {
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token_user}`
+      }
+    }
+  )
 
-    rows.value = payload.map(item => ({
-      id: item.idQuizz || item.id || null,
-      NOM: item.name,
-      Nombre_De_Questions: item.nb_questions || item.nb_question || 0,
+  if (!responseQuestions.ok) throw new Error('Erreur HTTP ' + responseQuestions.status)
+  const { data: questions } = await responseQuestions.json()
+
+  rows.value = quizzes.map(quizz => {
+    const quizzId = quizz.id
+
+    const nbQuestions = questions.filter(question =>
+      question.idQuizz?.id === quizzId
+    ).length
+
+    return {
+      Id: quizz.id,
+      name: quizz.name,
+      Nombre_De_Questions: nbQuestions,
       isEnableBoolean: !!(
-        item.isEnable === true ||
-        item.isEnable === 1 ||
-        item.isEnable === '1' ||
-        item.isEnable === 'true'
-      )
-    }))
-  } catch (err) {
-    console.error('Impossible de charger les questionnaires :', err)
-    rows.value = []
+        quizz.isEnable === true ||
+        quizz.isEnable === 1 ||
+        quizz.isEnable === '1' ||
+        quizz.isEnable === 'true'
+      ),
+      documentId: quizz.documentId
+    }
+  })
+}
+
+async function addQuizz() {
+  const token_user = Cookies.get('token_user')
+  const response = await fetch("http://10.0.52.187:1337/api/quizzes", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      'Authorization': `Bearer ${token_user}`
+    },
+    body: JSON.stringify({
+      data: {
+        name: newQuizz.value.name,
+        isEnable: newQuizz.value.isEnable
+      },
+    })
+  });
+
+  if (!response.ok) {
+    throw new Error("Erreur API " + response.status);
   }
+  const data = await response.json();
+
+  await loadQuizz();
+  showDialog.value = false
+  newQuizz.value.name = ''
+  newQuizz.value.isEnable = false
+  return data;
+}
+
+async function editQuizz() {
+  const token_user = Cookies.get('token_user')
+  const documentId = editingQuizz.value.documentId;
+
+  const response = await fetch(`http://10.0.52.187:1337/api/quizzes/${documentId}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      'Authorization': `Bearer ${token_user}`
+    },
+    body: JSON.stringify({
+      data: {
+        name: editingQuizz.value.name,
+        isEnable: editingQuizz.value.isEnable
+      },
+    })
+  });
+
+  if (!response.ok) {
+    throw new Error("Erreur API " + response.status);
+  }
+
+  showEditDialog.value = false
+  await loadQuizz()
 }
 
 // Lifecycle hooks fonctionnent de la même manière
@@ -196,15 +266,20 @@ onMounted(() => {
 
 async function toggleStatus(row) {
   try {
-    const response = await fetch("http://10.0.52.142/success/api.php/edit_quizz", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
+    const token_user = Cookies.get('token_user')
+    const documentId = row.documentId;
+
+    const response = await fetch(`http://10.0.52.187:1337/api/quizzes/${documentId}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      'Authorization': `Bearer ${token_user}`
+    },
       body: JSON.stringify({
-        idQuizz: row.id,
-        name: row.NOM,
-        isEnable: !row.isEnableBoolean
+        data: {
+          name: row.NOM,
+          isEnable: !row.isEnableBoolean
+        }
       })
     });
 
@@ -212,60 +287,50 @@ async function toggleStatus(row) {
       throw new Error("Erreur API " + response.status);
     }
 
-    const data = await response.json();
-    if (data.status === "success") {
       row.isEnableBoolean = !row.isEnableBoolean;
-      console.log("Statut mis à jour :", data);
-    }
-  } catch (err) {
-    console.error("Erreur lors de la mise à jour du statut", err);
+      console.log("Statut mis à jour")
+  } catch(err) {
+  console.log(err)
   }
 }
 
 async function deleteRow(row) {
-  try {
-    const response = await fetch('http://10.0.52.142/success/api.php/del_quizz', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({idQuizz: row.id})
-    });
-    if (!response.ok) throw new Error('Erreur HTTP ' + response.status);
+  const token_user = Cookies.get('token_user')
+  const documentId = row.documentId;
 
-    const data = await response.json();
-
-    if (data.status === 'success') {
-      console.log('QUIZZ', row.id, 'supprimé avec succès');
-      await loadQuizz();
-    } else {
-      console.error('Erreur lors de la suppression:', data.message);
+  const response = await fetch(`http://10.0.52.187:1337/api/quizzes/${documentId}`, {
+    method: 'DELETE',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token_user}`
     }
-  } catch (err) {
-    console.error('Impossible de supprimer le quizz :', err);
+  });
+
+   if (!response.ok) {
+    throw new Error(`Erreur DELETE ${response.status}`)
   }
+
+  await loadQuizz();
 }
 
 function editRow(row) {
-  editedQuizz.value = row
-  currentQuizz.value = {
-    name: row.NOM,
-    isEnable: row.isEnableBoolean
+  editingQuizz.value = {
+    name: row.name,
+    isEnable: row.isEnableBoolean,
+    documentId: row.documentId
   }
-  showDialog.value = true
+  showEditDialog.value = true
 }
 
 function openAddDialog() {
-  editedQuizz.value = null
-  currentQuizz.value = { name: '', isEnable: false }
   showDialog.value = true
 }
 
 function goToQuestionPage() {
-  if (editedQuizz.value && editedQuizz.value.id) {
-    window.location.href = '/#/question?idQuizz=' + editedQuizz.value.id;
+  if (editingQuizz.value && editingQuizz.value.documentId) {
+    window.location.href = '/#/question?idQuizz=' + editingQuizz.value.documentId;
   } else {
-    console.warn("Aucun ID de quiz trouvé.");
+    console.warn("Aucun ID de quizz trouvé.");
   }
 }
 </script>
