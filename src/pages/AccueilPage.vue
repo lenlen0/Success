@@ -208,8 +208,15 @@ async function loadExams() {
         const res = await fetch('http://10.0.52.142/success/api.php/show_exam')
         const data = await res.json()
 
+        // --- FILTRE AJOUTÉ ICI ---
+        // On exclut les entraînements en vérifiant le statut
+        const cleanData = data.filter(item => {
+            if (!item.status) return true;
+            return !item.status.toLowerCase().includes('entrainement');
+        });
+
         // Stockage des données brutes enrichies avec les IDs pour le filtrage
-        examsData.value = data.map(item => ({
+        examsData.value = cleanData.map(item => ({
             nom: item.exam_name,
             // Conversion de la moyenne en % (Assurez-vous que le calcul * 5 est correct selon votre API)
             reussite: `${item.avg_grade !== null ? (item.avg_grade * 5).toFixed(1) : 0}%`,

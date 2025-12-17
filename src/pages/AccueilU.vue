@@ -75,7 +75,7 @@
       <q-card class="q-pa-lg full-width" flat bordered>
         <q-card-section class="q-pb-none">
           <div class="text-h5 text-purple-12 text-weight-bold">Résultats par Évaluation Passée 📈</div>
-          <div class="text-subtitle2 text-grey-7">Visualisation de vos scores sur l'ensemble de vos participations.</div>
+          <div class="text-subtitle2 text-grey-7">Visualisation de vos scores sur l'ensemble de vos participations (Hors entraînements).</div>
         </q-card-section>
 
         <q-card-section class="row q-gutter-md q-pt-md">
@@ -121,7 +121,7 @@
             </div>
           </div>
           <div v-else class="text-center q-pa-md text-grey-6">
-            Vous n'avez passé aucune évaluation (ou les données ne sont pas chargées).
+            Vous n'avez passé aucune évaluation réelle (ou les données ne sont pas chargées).
           </div>
         </q-card-section>
       </q-card>
@@ -155,7 +155,7 @@ const examOptions = ref([])
 
 
 // ==============================================
-// LOGIQUE DE L'ENTRÉE DE CODE (Inchngée)
+// LOGIQUE DE L'ENTRÉE DE CODE (Inchangée)
 // ==============================================
 
 const verifyCode = async () => {
@@ -178,12 +178,10 @@ const verifyCode = async () => {
     const data = await response.json();
 
     if (response.ok && Array.isArray(data)) {
-      // Chercher l'examen avec le code saisi
       const exam = data.find(e => String(e.code) === text.value.trim());
 
       if (exam) {
         if (exam.status === 'Ouvert' || exam.status === 'Entrainement') {
-          // Redirection vers la page Pexam avec les paramètres
           router.push({
             path: '/Pexam',
             query: {
@@ -243,9 +241,7 @@ function getColor(index) {
 
 const averageGrade = computed(() => {
     const grades = chartData.value.map(item => item.percentage);
-
     if (grades.length === 0) return 0;
-
     const sum = grades.reduce((a, b) => a + b, 0);
     return parseFloat((sum / grades.length).toFixed(1));
 })
@@ -258,7 +254,6 @@ const totalExams = computed(() => examsData.value.length)
 
 const maxAvgGrade = computed(() => {
   if (chartData.value.length === 0) return '0.0'
-
   const grades = chartData.value.map(item => item.percentage)
   return Math.max(...grades).toFixed(1)
 })
@@ -268,22 +263,24 @@ const maxAvgGrade = computed(() => {
 
 async function loadExamsForStats() {
     try {
-        // 🚀 Utilisation de l'endpoint d'historique confirmé par api.php
         const url = `${BASE_API_URL}/show_passed_exam/${currentUserId.value}`
         const res = await fetch(url)
         const data = await res.json()
 
         if (Array.isArray(data)) {
-            examsData.value = data.map(item => {
+            
+            // --- FILTRE ANTI-ENTRAINEMENT AJOUTÉ ICI ---
+            // On retire les examens dont le statut est "Entrainement"
+            const cleanData = data.filter(item => {
+                if (!item.status) return true;
+                return item.status.toLowerCase() !== 'entrainement';
+            });
 
-                // ⚠️ ADAPTATION SELON LA RÉPONSE DE L'API :
-                // item.user_grade si vous avez fait la modification BDD,
-                // sinon item.avg_grade si vous n'avez pas touché le PHP
+            examsData.value = cleanData.map(item => {
                 const gradeField = item.user_grade !== undefined ? item.user_grade : item.avg_grade;
 
                 return {
                     nom: item.exam_name,
-                    // Note individuelle mise à l'échelle (ex: si la note max est 20 et item.grade = 15, on fait 15 * 5 = 75%)
                     reussite: `${gradeField !== null ? (gradeField * 5).toFixed(1) : 0}%`,
                     idExam: parseInt(item.idExam),
                     idQuizz: item.idQuizz,
@@ -291,12 +288,10 @@ async function loadExamsForStats() {
                 }
             })
 
-            // Options de sélection (basées sur l'historique de l'utilisateur)
-            examOptions.value = examsData.value
-                .map(item => ({
-                    label: item.nom,
-                    value: item.idExam
-                }));
+            examOptions.value = examsData.value.map(item => ({
+                label: item.nom,
+                value: item.idExam
+            }));
         } else {
              examsData.value = []
         }
