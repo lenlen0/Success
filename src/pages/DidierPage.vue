@@ -74,14 +74,14 @@
         <q-card-section>
           <div class="row q-gutter-md">
             <h4 class="text-purple-10 q-my-md text-h6">ID de l'utilisateur : {{editUser.Id}}</h4>
+            <q-input v-model="editUser.Username" rounded outlined label="Username" class="col-11" />
+            <q-input v-model="editUser.Email" rounded outlined label="Email" class="col-11" />
             <q-input v-model="editUser.PWD" rounded outlined label="Mot de passe" class="col-11" />
-            <q-input v-model="editUser.Nom" rounded outlined label="Nom" class="col-11" />
-            <q-input v-model="editUser.Prenom" rounded outlined label="Prénom" class="col-11" />
             <q-select
               rounded
               standout="bg-grey-1"
               v-model="editUser.role"
-              :options="['admin', 'student']"
+              :options="['admin', 'logged_user']"
               label="Role"
               class="col-11"
             />
@@ -95,7 +95,7 @@
           rounded
           color="purple-7"
           label="Modifier"
-          @click="editUserFunc(editUser.Id, editUser.PWD, editUser.role, editUser.Prenom, editUser.Nom)"
+          @click="editUserFunc(editUser.Id, editUser.Username, editUser.Email, editUser.PWD, editUser.role)"
         />
 
         </q-card-actions>
@@ -149,9 +149,8 @@ async function loadUsers() {
       Id: item.id,
       Username: item.username,
       Email: item.email,
-      role: item.role.name.includes('admin') ? 'Admin'
-        : item.role.name.includes('logged_user') ? 'Utilisateur'
-        : 'Non enregistré'
+      PWD: item.password,
+      role: item.role.name
     }))
   } catch (err) {
     console.error('Impossible de charger les utilisateurs :', err)
@@ -168,8 +167,8 @@ const newUser = ref({
 
 const editUser = ref({
   Id: '',
-  Nom: '',
-  Prenom: '',
+  Username: '',
+  Email: '',
   PWD: '',
   role: ''
 })
@@ -211,6 +210,7 @@ async function addUser() {
     console.log("Utilisateur ajouté :", data);
 
     await loadUsers()
+    showDialog.value = false
 
     return data;
 
@@ -222,45 +222,38 @@ async function addUser() {
 function editRow(row) {
   editUser.value = {
     Id: row.Id,
-    Nom: row.Nom,
-    Prenom: row.Prenom,
+    Username: row.Username,
+    Email: row.Email,
     PWD: row.PWD,
     role: row.role
   }
   showEditDialog.value = true
 }
 
-async function editUserFunc(id, pwd, role, prenom, nom) {
+async function editUserFunc(id, username, email, password, role) {
   try {
-    const response = await fetch(`http://10.0.52.142/success/api.php/show_user/${id}`)
-    if (!response.ok) throw new Error('Erreur HTTP ' + response.status)
+    const token_user = Cookies.get('token_user')
+    let roleid = 0;
 
-    const data = await response.json();
-    if(data[0].pwd === pwd) {
-      // EditUser sans modification du mdp
-      await EditUserNoPasswordEdit(id, role, prenom, nom);
+    if (role === 'admin') {
+      roleid = 3;
+    } if (role === 'logged_user') {
+      roleid = 1;
     } else {
-      //EditUser modification mdp
-      await EditUserWPasswordEdit(id, pwd, role, prenom, nom);
+      throw new Error('Rôle invalide')
     }
 
-  } catch (err) {
-    console.error('Impossible de charger les utilisateurs :', err)
-  }
-}
-
-async function EditUserNoPasswordEdit(id, role, prenom, nom) {
-  try {
-    const response = await fetch("http://10.0.52.142/success/api.php/modify_user_with_no_password_change", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
+    const response = await fetch(`http://10.0.52.187:1337/api/users/${id}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      'Authorization': `Bearer ${token_user}`
+    },
       body: JSON.stringify({
-        id_s11: id,
-        role: role,
-        firstname: prenom,
-        lastname: nom
+        username: username,
+        email: email,
+        password: password,
+        role: roleid
       })
     });
 
@@ -271,47 +264,8 @@ async function EditUserNoPasswordEdit(id, role, prenom, nom) {
     const data = await response.json();
     console.log("Utilisateur modifié :", data);
 
-    if (data.status === "success") {
-      showEditDialog.value = false
-      await loadUsers()
-    }
-
-    return data;
-
-  } catch (err) {
-    console.error("Erreur", err);
-  }
-}
-
-async function EditUserWPasswordEdit(id, pwd, role, prenom, nom) {
-  try {
-    const response = await fetch("http://10.0.52.142/success/api.php/modify_user_with_password_change", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        id_s11: id,
-        pwd: pwd,
-        role: role,
-        firstname: prenom,
-        lastname: nom
-      })
-    });
-
-    if (!response.ok) {
-      throw new Error("Erreur API " + response.status);
-    }
-
-    const data = await response.json();
-    console.log("Utilisateur modifié :", data);
-
-    if (data.status === "success") {
-      showEditDialog.value = false
-      await loadUsers()
-    }
-
-    return data;
+    showEditDialog.value = false
+    await loadUsers()
 
   } catch (err) {
     console.error("Erreur", err);
