@@ -83,7 +83,7 @@
             <q-select
               rounded outlined
               v-model="currentEval.status"
-              :options="['En cours', 'Ferme', 'Entrainement']"
+              :options="['Ouvert', 'Ferme', 'Entrainement']"
               label="Status"
               class="col-11"
             />
@@ -113,6 +113,7 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
 import { verifyR } from '../composables/verification'
+import { Cookies } from 'quasar'
 
 const { verifyRole } = verifyR()
 
@@ -202,42 +203,51 @@ async function loadQcm() {
 
 async function loadExams() {
   try {
-    const res = await fetch('http://10.0.52.142/success/api.php/show_exam')
-    const data = await res.json()
+    const token_user = Cookies.get('token_user')
 
-    // MAPPING: Remplace 'Ouvert' par 'En cours' pour l'affichage
-    const mapStatusForDisplay = (status) => {
-        return status === 'Ouvert' ? 'En cours' : status;
-    };
+    const response = await fetch('http://10.0.52.187:1337/api/exams?populate=*', {
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token_user}`
+      }
+    })
+    if (!response.ok) throw new Error('Erreur HTTP ' + response.status)
 
-    // Fonction utilitaire pour trouver la valeur (ID) du QCM et du Groupe à partir du nom
-    const getOptionValue = (options, label) => {
-        const option = options.find(o => o.label === label);
-        return option ? option.value : null;
-    };
+    const data = await response.json()
+    console.log('Données reçues de l\'API exams:', data)
 
-    rows.value = data.map(item => ({
-      // Champs pour l'affichage dans la Q-Table
-      nom: item.exam_name,
-      date: item.dateExam,
-      qcm: item.quizz_name,
-      groupe: item.group_name,
-      status: mapStatusForDisplay(item.status),
-      reussite: `${item.avg_grade !== null ? (item.avg_grade * 5).toFixed(0) : 0}%`,
-      Code: item.code,
-      // Champs cachés nécessaires pour la modification et la suppression
-      idExam: item.idExam,
-      rawStatus: item.status,
-      // Stockage de l'objet { label, value } pour la pré-sélection dans le formulaire de modification
-      qcmObject: { label: item.quizz_name, value: getOptionValue(quizzOptions.value, item.quizz_name) },
-      groupeObject: { label: item.group_name, value: getOptionValue(groupOptions.value, item.group_name) },
-      time: item.time ? parseInt(item.time) : 60,
-      Barem: item.scale === '1' || item.scale === 1,
-      Malus: item.hasMalus === '1' || item.hasMalus === 1,
-    }))
+    // Vérifier si data est un tableau directement
+    if (Array.isArray(data)) {
+      rows.value = data.map(item => ({
+        Id: item.id,
+        nom: item.name,
+        date: item.publishedAt,
+        qcm: item.idQuizz.name,
+        groupe: item.idGroup.name,
+        status: item.status,
+        reussite: `${item.avg_grade !== null ? (item.avg_grade * 5).toFixed(0) : 0}%`,
+        Code: item.code
+      }))
+    } else if (data && data.data && Array.isArray(data.data)) {
+      // Si la réponse a la structure { data: [...] }
+      rows.value = data.data.map(item => ({
+        Id: item.id,
+        nom: item.name,
+        date: item.publishedAt,
+        qcm: item.idQuizz.name,
+        groupe: item.idGroup.name,
+        status: item.status,
+        reussite: `${item.avg_grade !== null ? (item.avg_grade * 5).toFixed(0) : 0}%`,
+        Code: item.code
+      }))
+    } else {
+      // Si la structure est inattendue
+      console.warn('Structure inattendue des données:', data)
+      rows.value = []
+    }
+
   } catch (err) {
-    console.error('Erreur chargement exams:', err)
-    rows.value = []
+    console.error('Impossible de charger les examens :', err)
   }
 }
 
