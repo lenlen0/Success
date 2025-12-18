@@ -55,11 +55,9 @@
               v-model="newEval.Code"
               label="Code"
               class="col-11"
-              :readonly="isEditing"
             >
               <template v-slot:append>
                 <q-btn
-                  v-if="!isEditing"
                   icon="refresh"
                   round
                   flat
@@ -107,17 +105,77 @@
         </q-card-actions>
       </q-card>
     </q-dialog>
+
+    <q-dialog v-model="showEditDialog" persistent>
+      <q-card style="min-width: 450px;">
+        <q-card-section class="bg-purple-1 text-purple-10">
+          <div class="text-h6">Modifier Evaluation</div>
+        </q-card-section>
+
+        <q-card-section>
+          <div class="row q-gutter-md">
+            <q-input rounded outlined v-model="editEval.nom" label="Nom" class="col-11" />
+            <q-input rounded outlined v-model.number="editEval.time" label="Time (min)" type="number" class="col-11" />
+
+            <q-select
+              rounded outlined
+              v-model="editEval.qcm"
+              :options="quizzOptions"
+              label="QCM"
+              class="col-11"
+              emit-value
+              map-options
+            />
+
+            <q-select
+              rounded outlined
+              v-model="editEval.groupe"
+              :options="groupOptions"
+              label="Groupe"
+              class="col-11"
+              emit-value
+              map-options
+            />
+
+            <q-select
+              rounded outlined
+              v-model="editEval.status"
+              :options="['Ouvert', 'Ferme', 'Entrainement']"
+              label="Status"
+              class="col-11"
+            />
+
+            <q-card-actions align="center" class="q-gutter-md">
+              <q-checkbox v-model="editEval.Barem" label="Barême" color="purple-7" keep-color />
+              <q-checkbox v-model="editEval.Malus" label="Malus" color="purple-7" keep-color />
+            </q-card-actions>
+          </div>
+        </q-card-section>
+
+        <q-card-actions align="right">
+          <q-btn unelevated rounded color="purple-7" label="Annuler" v-close-popup @click="resetForm" />
+          <q-btn
+            unelevated
+            rounded
+            color="purple-7"
+            label="Modifier"
+            @click="editEvalFunc"
+          />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
   </q-page>
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted } from 'vue'
 import { verifyR } from '../composables/verification'
 import { Cookies } from 'quasar'
 
 const { verifyRole } = verifyR()
 
 const showDialog = ref(false)
+const showEditDialog = ref(false)
 const rows = ref([])
 const editedEval = ref(null)
 
@@ -133,13 +191,54 @@ const newEval = ref({
   idExam: null
 })
 
-const isEditing = computed(() => editedEval.value !== null)
+const editEval = ref({
+  nom: '',
+  time: '',
+  qcm: null,
+  groupe: null,
+  status: '',
+  Barem: false,
+  Malus: false,
+  idExam: null,
+  documentId: null
+})
+
+async function editEvalFunc() {
+  const token_user = Cookies.get('token_user')
+  const documentId = editEval.value.documentId;
+
+  const response = await fetch(`http://10.0.52.187:1337/api/exams/${documentId}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      'Authorization': `Bearer ${token_user}`
+    },
+    body: JSON.stringify({
+      data: {
+        name: editEval.value.nom,
+        role: editEval.value.status,
+        scale: editEval.value.Barem,
+        hasMalus: editEval.value.Malus,
+        time: editEval.value.time,
+        idQuizz: editEval.value.qcm,
+        idGroup: editEval.value.groupe
+      },
+    })
+  });
+
+  if (!response.ok) {
+    throw new Error("Erreur API " + response.status);
+  }
+
+  showEditDialog.value = false
+  await loadExams()
+}
 
 const columns = [
   { name: 'nom', label: 'Nom', align: 'left', field: 'nom' },
   { name: 'date', label: 'Date', align: 'left', field: 'date' },
-  { name: 'qcm', label: 'QCM', align: 'left', field: 'qcm' },
-  { name: 'groupe', label: 'Groupe', align: 'left', field: 'groupe' },
+  { name: 'qcmLabel', label: 'QCM', align: 'left', field: 'qcmLabel' },
+  { name: 'groupeLabel', label: 'Groupe', align: 'left', field: 'groupeLabel' },
   { name: 'status', label: 'Status', align: 'left', field: 'status' },
   { name: 'reussite', label: '%Réussite', align: 'left', field: 'reussite' },
   { name: 'Code', label: 'Code', align: 'left', field: 'Code' },
@@ -148,8 +247,6 @@ const columns = [
 
 const groupOptions = ref([])
 const quizzOptions = ref([])
-
-// --- Fonctions utilitaires ---
 
 function generateCode() {
     const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -179,7 +276,6 @@ function openDialogAndGenerateCode() {
     showDialog.value = true;
 }
 
-// --- Logique de chargement des données ---
 async function loadGroups() {
   try {
     const token_user = Cookies.get('token_user')
@@ -267,13 +363,15 @@ async function loadExams() {
       Id: exam.id,
       nom: exam.name,
       date: exam.publishedAt,
-      qcm: exam.idQuizz?.name ?? '',
-      groupe: exam.idGroup?.map(g => g.name).join(', ') ?? '',
+      qcm: exam.idQuizz?.id ?? null,
+      qcmLabel: exam.idQuizz?.name ?? '',
+      groupe: exam.idGroup?.[0]?.id ?? null,
+      groupeLabel: exam.idGroup?.map(g => g.name).join(', ') ?? '',
       status: exam.role,
       reussite: Math.round(moyennePourcent) + ' %',
       Code: exam.code,
-      participants: nbParticipants,
-      documentId: exam.documentId
+      documentId: exam.documentId,
+      time: exam.time
     }
   })
   } catch (err) {
@@ -298,7 +396,7 @@ async function addEval() {
         hasMalus: newEval.value.Malus,
         time: newEval.value.time,
         idQuizz: newEval.value.qcm,
-        idGroup: [newEval.value.groupe],
+        idGroup: newEval.value.groupe,
       },
     })
   });
@@ -315,25 +413,20 @@ async function addEval() {
   return data;
 }
 
-// --- Logique d'édition et de suppression ---
-
 function openEditDialog(row) {
-    editedEval.value = row;
-
-    // Clonage des données de la ligne dans currentEval pour l'édition
-    newEval.value = {
-        idExam: row.idExam,
+    editEval.value = {
+        idExam: row.id,
         nom: row.nom,
         time: row.time,
-        qcm: row.qcmObject,
-        groupe: row.groupeObject,
-        Code: row.Code,
+        qcm: row.qcm,
+        groupe: row.groupe,
         status: row.status,
         Barem: row.Barem,
-        Malus: row.Malus
+        Malus: row.Malus,
+        documentId: row.documentId
     };
 
-    showDialog.value = true;
+    showEditDialog.value = true;
 }
 
 async function deleteRow(row) {
@@ -356,12 +449,10 @@ async function deleteRow(row) {
 }
 
 
-// Chargements initiaux
 onMounted(async () => {
   verifyRole("admin", "/AccueilU")
   await loadGroups()
   await loadQcm()
-  // Important : loadExams DOIT se faire après loadGroups et loadQcm
   await loadExams()
 })
 </script>
