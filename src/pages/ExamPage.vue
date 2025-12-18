@@ -31,17 +31,17 @@
     <q-dialog v-model="showDialog" persistent>
       <q-card style="min-width: 450px;">
         <q-card-section class="bg-purple-1 text-purple-10">
-          <div class="text-h6">{{ isEditing ? 'Modifier évaluation' : 'Nouvelle évaluation' }}</div>
+          <div class="text-h6">Nouvelle Evaluation</div>
         </q-card-section>
 
         <q-card-section>
           <div class="row q-gutter-md">
-            <q-input rounded outlined v-model="currentEval.nom" label="Nom" class="col-11" />
-            <q-input rounded outlined v-model.number="currentEval.time" label="Time (min)" type="number" class="col-11" />
+            <q-input rounded outlined v-model="newEval.nom" label="Nom" class="col-11" />
+            <q-input rounded outlined v-model.number="newEval.time" label="Time (min)" type="number" class="col-11" />
 
             <q-select
               rounded outlined
-              v-model="currentEval.qcm"
+              v-model="newEval.qcm"
               :options="quizzOptions"
               label="QCM"
               class="col-11"
@@ -52,14 +52,12 @@
             <q-input
               rounded
               outlined
-              v-model="currentEval.Code"
+              v-model="newEval.Code"
               label="Code"
               class="col-11"
-              :readonly="isEditing"
             >
               <template v-slot:append>
                 <q-btn
-                  v-if="!isEditing"
                   icon="refresh"
                   round
                   flat
@@ -72,7 +70,7 @@
 
             <q-select
               rounded outlined
-              v-model="currentEval.groupe"
+              v-model="newEval.groupe"
               :options="groupOptions"
               label="Groupe"
               class="col-11"
@@ -82,15 +80,15 @@
 
             <q-select
               rounded outlined
-              v-model="currentEval.status"
-              :options="['En cours', 'Ferme', 'Entrainement']"
+              v-model="newEval.status"
+              :options="['Ouvert', 'Ferme', 'Entrainement']"
               label="Status"
               class="col-11"
             />
 
             <q-card-actions align="center" class="q-gutter-md">
-              <q-checkbox v-model="currentEval.Barem" label="Barême" color="purple-7" keep-color />
-              <q-checkbox v-model="currentEval.Malus" label="Malus" color="purple-7" keep-color />
+              <q-checkbox v-model="newEval.Barem" label="Barême" color="purple-7" keep-color />
+              <q-checkbox v-model="newEval.Malus" label="Malus" color="purple-7" keep-color />
             </q-card-actions>
           </div>
         </q-card-section>
@@ -101,8 +99,67 @@
             unelevated
             rounded
             color="purple-7"
-            :label="isEditing ? 'Modifier' : 'Ajouter'"
-            @click="saveEval"
+            label="Ajouter"
+            @click="addEval"
+          />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
+
+    <q-dialog v-model="showEditDialog" persistent>
+      <q-card style="min-width: 450px;">
+        <q-card-section class="bg-purple-1 text-purple-10">
+          <div class="text-h6">Modifier Evaluation</div>
+        </q-card-section>
+
+        <q-card-section>
+          <div class="row q-gutter-md">
+            <q-input rounded outlined v-model="editEval.nom" label="Nom" class="col-11" />
+            <q-input rounded outlined v-model.number="editEval.time" label="Time (min)" type="number" class="col-11" />
+
+            <q-select
+              rounded outlined
+              v-model="editEval.qcm"
+              :options="quizzOptions"
+              label="QCM"
+              class="col-11"
+              emit-value
+              map-options
+            />
+
+            <q-select
+              rounded outlined
+              v-model="editEval.groupe"
+              :options="groupOptions"
+              label="Groupe"
+              class="col-11"
+              emit-value
+              map-options
+            />
+
+            <q-select
+              rounded outlined
+              v-model="editEval.status"
+              :options="['Ouvert', 'Ferme', 'Entrainement']"
+              label="Status"
+              class="col-11"
+            />
+
+            <q-card-actions align="center" class="q-gutter-md">
+              <q-checkbox v-model="editEval.Barem" label="Barême" color="purple-7" keep-color />
+              <q-checkbox v-model="editEval.Malus" label="Malus" color="purple-7" keep-color />
+            </q-card-actions>
+          </div>
+        </q-card-section>
+
+        <q-card-actions align="right">
+          <q-btn unelevated rounded color="purple-7" label="Annuler" v-close-popup @click="resetForm" />
+          <q-btn
+            unelevated
+            rounded
+            color="purple-7"
+            label="Modifier"
+            @click="editEvalFunc"
           />
         </q-card-actions>
       </q-card>
@@ -111,34 +168,77 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted } from 'vue'
 import { verifyR } from '../composables/verification'
+import { Cookies } from 'quasar'
 
 const { verifyRole } = verifyR()
 
 const showDialog = ref(false)
+const showEditDialog = ref(false)
 const rows = ref([])
 const editedEval = ref(null)
 
-const currentEval = ref({
+const newEval = ref({
   nom: '',
   time: 60,
   qcm: null,
   groupe: null,
   Code: '',
-  status: 'En cours',
+  status: '',
   Barem: false,
   Malus: false,
   idExam: null
 })
 
-const isEditing = computed(() => editedEval.value !== null)
+const editEval = ref({
+  nom: '',
+  time: '',
+  qcm: null,
+  groupe: null,
+  status: '',
+  Barem: false,
+  Malus: false,
+  idExam: null,
+  documentId: null
+})
+
+async function editEvalFunc() {
+  const token_user = Cookies.get('token_user')
+  const documentId = editEval.value.documentId;
+
+  const response = await fetch(`http://10.0.52.187:1337/api/exams/${documentId}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      'Authorization': `Bearer ${token_user}`
+    },
+    body: JSON.stringify({
+      data: {
+        name: editEval.value.nom,
+        role: editEval.value.status,
+        scale: editEval.value.Barem,
+        hasMalus: editEval.value.Malus,
+        time: editEval.value.time,
+        idQuizz: editEval.value.qcm,
+        idGroup: editEval.value.groupe
+      },
+    })
+  });
+
+  if (!response.ok) {
+    throw new Error("Erreur API " + response.status);
+  }
+
+  showEditDialog.value = false
+  await loadExams()
+}
 
 const columns = [
   { name: 'nom', label: 'Nom', align: 'left', field: 'nom' },
   { name: 'date', label: 'Date', align: 'left', field: 'date' },
-  { name: 'qcm', label: 'QCM', align: 'left', field: 'qcm' },
-  { name: 'groupe', label: 'Groupe', align: 'left', field: 'groupe' },
+  { name: 'qcmLabel', label: 'QCM', align: 'left', field: 'qcmLabel' },
+  { name: 'groupeLabel', label: 'Groupe', align: 'left', field: 'groupeLabel' },
   { name: 'status', label: 'Status', align: 'left', field: 'status' },
   { name: 'reussite', label: '%Réussite', align: 'left', field: 'reussite' },
   { name: 'Code', label: 'Code', align: 'left', field: 'Code' },
@@ -147,8 +247,6 @@ const columns = [
 
 const groupOptions = ref([])
 const quizzOptions = ref([])
-
-// --- Fonctions utilitaires ---
 
 function generateCode() {
     const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -161,14 +259,14 @@ function generateCode() {
 }
 
 function generateAndSetCode() {
-    currentEval.value.Code = generateCode();
+    newEval.value.Code = generateCode();
 }
 
 function resetForm() {
     editedEval.value = null;
-    currentEval.value = {
+    newEval.value = {
         nom: '', time: 60, qcm: null, groupe: null, Code: '', idExam: null,
-        status: 'En cours', Barem: false, Malus: false
+        status: '', Barem: false, Malus: false
     }
 }
 
@@ -178,13 +276,21 @@ function openDialogAndGenerateCode() {
     showDialog.value = true;
 }
 
-// --- Logique de chargement des données ---
-
 async function loadGroups() {
   try {
-    const res = await fetch('http://10.0.52.142/success/api.php/show_group')
+    const token_user = Cookies.get('token_user')
+
+    const res = await fetch('http://10.0.52.187:1337/api/groups', {
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token_user}`
+      }
+    })
     const data = await res.json()
-    groupOptions.value = data.map(g => ({ label: g.name, value: g.idGroup }))
+    groupOptions.value = data.data.map(item => ({
+      label: item.name,
+      value: item.id
+    }))
   } catch (err) {
     console.error('Erreur chargement groupes:', err)
   }
@@ -192,252 +298,161 @@ async function loadGroups() {
 
 async function loadQcm() {
   try {
-    const res = await fetch('http://10.0.52.142/success/api.php/show_quizz')
+    const token_user = Cookies.get('token_user')
+
+    const res = await fetch('http://10.0.52.187:1337/api/quizzes', {
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token_user}`
+      }
+    })
     const data = await res.json()
-    quizzOptions.value = data.map(q => ({ label: q.name, value: q.idQuizz }))
+    quizzOptions.value = data.data.map(item => ({
+      label: item.name,
+      value: item.id
+    }))
   } catch (err) {
-    console.error('Erreur chargement quizz:', err)
+    console.error('Erreur chargement groupes:', err)
   }
 }
 
 async function loadExams() {
   try {
-    const res = await fetch('http://10.0.52.142/success/api.php/show_exam')
-    const data = await res.json()
+    const token_user = Cookies.get('token_user')
 
-    // MAPPING: Remplace 'Ouvert' par 'En cours' pour l'affichage
-    const mapStatusForDisplay = (status) => {
-        return status === 'Ouvert' ? 'En cours' : status;
-    };
+    const response = await fetch('http://10.0.52.187:1337/api/exams?populate=*', {
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token_user}`
+      }
+    })
+    if (!response.ok) throw new Error('Erreur HTTP ' + response.status)
+    const { data: exams } = await response.json()
 
-    // Fonction utilitaire pour trouver la valeur (ID) du QCM et du Groupe à partir du nom
-    const getOptionValue = (options, label) => {
-        const option = options.find(o => o.label === label);
-        return option ? option.value : null;
-    };
+    const responseTakeExam = await fetch(
+    'http://10.0.52.187:1337/api/takeexams?populate=*',
+    {
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token_user}`
+      }
+    }
+  )
 
-    rows.value = data.map(item => ({
-      // Champs pour l'affichage dans la Q-Table
-      nom: item.exam_name,
-      date: item.dateExam,
-      qcm: item.quizz_name,
-      groupe: item.group_name,
-      status: mapStatusForDisplay(item.status),
-      reussite: `${item.avg_grade !== null ? (item.avg_grade * 5).toFixed(0) : 0}%`,
-      Code: item.code,
-      // Champs cachés nécessaires pour la modification et la suppression
-      idExam: item.idExam,
-      rawStatus: item.status,
-      // Stockage de l'objet { label, value } pour la pré-sélection dans le formulaire de modification
-      qcmObject: { label: item.quizz_name, value: getOptionValue(quizzOptions.value, item.quizz_name) },
-      groupeObject: { label: item.group_name, value: getOptionValue(groupOptions.value, item.group_name) },
-      time: item.time ? parseInt(item.time) : 60,
-      Barem: item.scale === '1' || item.scale === 1,
-      Malus: item.hasMalus === '1' || item.hasMalus === 1,
-    }))
-  } catch (err) {
-    console.error('Erreur chargement exams:', err)
-    rows.value = []
-  }
-}
+  if (!responseTakeExam.ok) throw new Error('Erreur HTTP ' + responseTakeExam.status)
+  const { data: TakeExams } = await responseTakeExam.json()
 
+  rows.value = exams.map(exam => {
+    const examID = exam.id
 
-// --- Logique d'ajout/modification ---
+    const takeExamsForThisExam = TakeExams.filter(takeexam =>
+      takeexam.idExam?.some(e => e.id === examID)
+    )
 
-function getPayload(evalData) {
-    // MAPPING: Remplace 'En cours' par 'Ouvert' pour l'envoi à l'API.
-    const statusApi = evalData.status === 'En cours' ? 'Ouvert' : evalData.status;
+    const nbParticipants = takeExamsForThisExam.length
 
-    // Détermination des IDs (la valeur sélectionnée est l'objet { label, value } ou la valeur directement si map-options est utilisé)
-    const qcmValue = typeof evalData.qcm === 'object' && evalData.qcm !== null ? evalData.qcm.value : evalData.qcm;
-    const groupeValue = typeof evalData.groupe === 'object' && evalData.groupe !== null ? evalData.groupe.value : evalData.groupe;
+    const moyennePourcent = nbParticipants > 0
+      ? (
+          takeExamsForThisExam.reduce((sum, t) => sum + (t.grade ?? 0), 0)
+          / nbParticipants
+          / 20
+        ) * 100
+      : 0
 
     return {
-        ...(evalData.idExam && { idExam: evalData.idExam }), // Ajout conditionnel pour la modification
-        name: evalData.nom.trim(),
-        time: parseInt(evalData.time) || 60,
-        idQuizz: qcmValue,
-        idGroup: groupeValue,
-        code: String(evalData.Code).trim(),
-        status: statusApi,
-        scale: evalData.Barem ? 1 : 0,
-        hasMalus: evalData.Malus ? 1 : 0
+      Id: exam.id,
+      nom: exam.name,
+      date: exam.publishedAt,
+      qcm: exam.idQuizz?.id ?? null,
+      qcmLabel: exam.idQuizz?.name ?? '',
+      groupe: exam.idGroup?.[0]?.id ?? null,
+      groupeLabel: exam.idGroup?.map(g => g.name).join(', ') ?? '',
+      status: exam.role,
+      reussite: Math.round(moyennePourcent) + ' %',
+      Code: exam.code,
+      documentId: exam.documentId,
+      time: exam.time
     }
-}
-
-async function addEval(payload) {
-  try {
-    const res = await fetch('http://10.0.52.142/success/api.php/add_exam', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    })
-
-    const responseText = await res.text();
-    let responseData;
-    let errorMessage = '';
-
-    try {
-        responseData = JSON.parse(responseText);
-    } catch {
-        // Tentative d'identifier l'erreur SQL dans la réponse brute si le JSON est invalide
-        const sqlErrorMatch = responseText.match(/Duplicate entry '([^']+)'/);
-        if (sqlErrorMatch) {
-            errorMessage = `Erreur de la base de données : Le code d'accès '${sqlErrorMatch[1]}' est déjà utilisé. Veuillez choisir un autre code.`;
-        } else {
-            errorMessage = `Erreur API (JSON invalide). Réponse serveur brute : ${responseText.substring(0, 150)}...`;
-        }
-        throw new Error(errorMessage);
-    }
-
-    if (!res.ok || responseData.status !== 'success') {
-        throw new Error(`Erreur API ${res.status}: ${responseData.message || 'Détails inconnus.'}`)
-    }
-
-
+  })
   } catch (err) {
-    throw new Error(`Échec de l'ajout : ${err.message}`)
+    console.error('Impossible de charger les examens :', err)
   }
 }
 
-async function updateEval(payload) {
-    try {
-        const res = await fetch('http://10.0.52.142/success/api.php/edit_exam', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        })
+async function addEval() {
+  const token_user = Cookies.get('token_user')
+  const response = await fetch("http://10.0.52.187:1337/api/exams", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      'Authorization': `Bearer ${token_user}`
+    },
+    body: JSON.stringify({
+      data: {
+        name: newEval.value.nom,
+        role: newEval.value.status,
+        code: newEval.value.Code,
+        scale: newEval.value.Barem,
+        hasMalus: newEval.value.Malus,
+        time: newEval.value.time,
+        idQuizz: newEval.value.qcm,
+        idGroup: newEval.value.groupe,
+      },
+    })
+  });
 
-        const responseText = await res.text();
-        let responseData;
+  if (!response.ok) {
+    throw new Error("Erreur API " + response.status);
+  }
+  const data = await response.json();
 
-        try {
-            responseData = JSON.parse(responseText);
-        } catch {
-            throw new Error(`Erreur API (JSON invalide). Réponse serveur brute : ${responseText.substring(0, 150)}...`);
-        }
+  await loadExams();
+  showDialog.value = false
+  console.log(newEval)
 
-        if (!res.ok || responseData.status !== 'success') {
-            throw new Error(`Erreur API ${res.status}: ${responseData.message || 'Détails inconnus.'}`)
-        }
-
-        // Message de succès retiré
-
-    } catch (err) {
-        throw new Error(`Échec de la modification : ${err.message}`);
-    }
+  return data;
 }
-
-async function saveEval() {
-    // 1. Validation de base (Remplacé alert par console.error pour ne pas bloquer l'interface)
-    if (!currentEval.value.nom.trim()) {
-      console.error('Validation: Le nom est requis');
-      return;
-    }
-    if (!currentEval.value.qcm) {
-      console.error('Validation: Veuillez sélectionner un QCM');
-      return;
-    }
-    if (!currentEval.value.groupe) {
-      console.error('Validation: Veuillez sélectionner un groupe');
-      return;
-    }
-
-    const codeValue = currentEval.value.Code ? currentEval.value.Code.trim() : '';
-    if (!codeValue || codeValue.length !== 6) {
-      console.error('Validation: Le code d\'accès doit être généré et avoir 6 caractères.');
-      return;
-    }
-
-    const payload = getPayload(currentEval.value);
-
-    try {
-        if (isEditing.value) {
-            await updateEval(payload);
-        } else {
-            await addEval(payload);
-        }
-
-        // Si l'appel réussi (aucune erreur levée), on met à jour la liste et ferme la modale
-        await loadExams();
-        resetForm();
-        showDialog.value = false;
-
-    } catch (error) {
-        // Affiche uniquement les erreurs critiques (API/BDD)
-        alert(error.message);
-    }
-}
-
-// --- Logique d'édition et de suppression ---
 
 function openEditDialog(row) {
-    editedEval.value = row;
-
-    // Clonage des données de la ligne dans currentEval pour l'édition
-    currentEval.value = {
-        idExam: row.idExam,
+    editEval.value = {
+        idExam: row.id,
         nom: row.nom,
         time: row.time,
-        // Utilisation des objets { label, value } stockés lors du loadExams pour pré-sélectionner le QSelect
-        qcm: row.qcmObject,
-        groupe: row.groupeObject,
-        Code: row.Code,
+        qcm: row.qcm,
+        groupe: row.groupe,
         status: row.status,
         Barem: row.Barem,
-        Malus: row.Malus
+        Malus: row.Malus,
+        documentId: row.documentId
     };
 
-    showDialog.value = true;
+    showEditDialog.value = true;
 }
 
 async function deleteRow(row) {
-    if (!row.idExam) {
-        console.error("Erreur: L'ID de l'examen est manquant pour la suppression.");
-        return;
+  const token_user = Cookies.get('token_user')
+  const documentId = row.documentId;
+
+  const response = await fetch(`http://10.0.52.187:1337/api/exams/${documentId}`, {
+    method: 'DELETE',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token_user}`
     }
+  });
 
-    try {
-        const payload = {
-            idExam: row.idExam
-        }
+   if (!response.ok) {
+    throw new Error(`Erreur DELETE ${response.status}`)
+  }
 
-        const res = await fetch('http://10.0.52.142/success/api.php/del_exam', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        })
-
-        const responseText = await res.text();
-        let responseData;
-
-        try {
-            responseData = JSON.parse(responseText);
-        } catch {
-            throw new Error(`Erreur API (JSON invalide). Réponse serveur brute : ${responseText.substring(0, 150)}...`);
-        }
-
-        if (!res.ok || responseData.status !== 'success') {
-            throw new Error(`Échec de la suppression: ${responseData.message || 'Erreur inconnue.'}`)
-        }
-
-        // Succès : Recharger les données pour mettre à jour la table
-        await loadExams();
-        // Message de succès retiré
-
-    } catch (err) {
-        console.error('Erreur de suppression:', err);
-        alert(`Échec de la suppression : ${err.message}`); // Garde l'alerte pour les erreurs critiques
-    }
+  await loadExams();
 }
 
 
-// Chargements initiaux
 onMounted(async () => {
   verifyRole("admin", "/AccueilU")
   await loadGroups()
   await loadQcm()
-  // Important : loadExams DOIT se faire après loadGroups et loadQcm
   await loadExams()
 })
 </script>
