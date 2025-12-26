@@ -75,9 +75,9 @@
                 >
                   <div
                     class="chart-bar"
-                    :style="{ 
-                      height: Math.min(item.percentage, 100) + '%', 
-                      backgroundColor: getColor(index) 
+                    :style="{
+                      height: Math.min(item.percentage, 100) + '%',
+                      backgroundColor: getColor(index)
                     }"
                   >
                     <div class="bar-info-overlay">
@@ -89,9 +89,9 @@
                       </div>
                     </div>
 
-                    <q-tooltip 
-                      anchor="center middle" 
-                      self="center middle" 
+                    <q-tooltip
+                      anchor="center middle"
+                      self="center middle"
                       class="bg-purple-9 text-body2 text-weight-bold"
                     >
                       {{ item.label }}
@@ -114,6 +114,7 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
 import { verifyR } from '../composables/verification'
+import { Cookies } from 'quasar';
 
 const { verifyRole } = verifyR()
 
@@ -158,28 +159,84 @@ const maxAvgGrade = computed(() => {
 
 async function loadGroups() {
     try {
-        const res = await fetch('http://10.0.52.142/success/api.php/show_group')
-        const data = await res.json()
-        groupOptions.value = data.map(g => ({ label: g.name, value: parseInt(g.idGroup) }))
+        const token_user = Cookies.get('token_user')
+
+        const res = await fetch('http://10.0.52.187:1337/api/groups', {
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token_user}`
+          }
+        })
+        const { data } = await res.json()
+        groupOptions.value = data.map(g => ({ label: g.name, value: parseInt(g.id) }))
     } catch (err) { console.error(err) }
 }
 
 async function loadExams() {
-    try {
-        const res = await fetch('http://10.0.52.142/success/api.php/show_exam')
-        const data = await res.json()
-        const cleanData = data.filter(item => {
-            if (!item.status) return true;
-            return !item.status.toLowerCase().includes('entrainement');
-        });
-        examsData.value = cleanData.map(item => ({
-            nom: item.exam_name,
-            reussite: `${item.avg_grade !== null ? (item.avg_grade * 5).toFixed(1) : 0}%`,
-            idGroup: parseInt(item.idGroup),
-            idExam: parseInt(item.idExam),
-        }))
-        examOptions.value = examsData.value.map(item => ({ label: item.nom, value: item.idExam }));
-    } catch (err) { console.error(err); examsData.value = [] }
+  try {
+    const token_user = Cookies.get('token_user')
+
+    const response = await fetch('http://10.0.52.187:1337/api/exams?populate=*', {
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token_user}`
+      }
+    })
+    if (!response.ok) throw new Error('Erreur HTTP ' + response.status)
+
+    const { data: exams } = await response.json()
+
+    const responseTakeExam = await fetch(
+      'http://10.0.52.187:1337/api/takeexams?populate=*',
+      {
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token_user}`
+        }
+      }
+    )
+    if (!responseTakeExam.ok) throw new Error('Erreur HTTP ' + responseTakeExam.status)
+
+    const { data: TakeExams } = await responseTakeExam.json()
+
+    const cleanExams = exams.filter(exam => {
+      if (!exam.role) return true
+      return !exam.role.includes('Entrainement')
+    })
+
+    examsData.value = cleanExams.map(exam => {
+      const examID = exam.id
+
+      const takeExamsForThisExam = TakeExams.filter(takeexam =>
+        takeexam.idExam?.some(e => e.id === examID)
+      )
+
+      const nbParticipants = takeExamsForThisExam.length
+
+      const moyennePourcent = nbParticipants > 0
+        ? (
+            takeExamsForThisExam.reduce((sum, t) => sum + (t.grade ?? 0), 0)
+            / nbParticipants
+            / 20
+          ) * 100
+        : 0
+
+      return {
+        nom: exam.name,
+        reussite: Math.round(moyennePourcent) + ' %',
+        idExam: exam.idQuizz?.id ?? null,
+        idGroup: exam.idGroup?.[0]?.id ?? null
+      }
+    })
+
+    examOptions.value = examsData.value.map(item => ({
+      label: item.nom,
+      value: item.idExam
+    }))
+
+  } catch (err) {
+    console.error('Impossible de charger les examens :', err)
+  }
 }
 
 onMounted(async () => {
@@ -194,22 +251,22 @@ onMounted(async () => {
 .bar-chart-wrapper {
   width: 100%;
   display: flex;
-  justify-content: flex-start; 
+  justify-content: flex-start;
 }
 
 .bar-chart-grid {
   display: flex;
   align-items: flex-end;
-  height: 350px; 
+  height: 350px;
   border-left: 2px solid #ddd;
   border-bottom: 2px solid #ddd;
-  padding: 60px 10px 0 10px; 
+  padding: 60px 10px 0 10px;
   gap: 20px;
 }
 
 .chart-item {
   height: 100%;
-  width: 65px; 
+  width: 65px;
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
@@ -226,10 +283,10 @@ onMounted(async () => {
 
 .bar-info-overlay {
   position: absolute;
-  top: -45px; 
+  top: -45px;
   left: 50%;
   transform: translateX(-50%);
-  width: 80px; 
+  width: 80px;
   text-align: center;
   display: flex;
   flex-direction: column;
