@@ -317,7 +317,8 @@ function editRow(row) {
   editingQuizz.value = {
     name: row.name,
     isEnable: row.isEnableBoolean,
-    documentId: row.documentId
+    documentId: row.documentId,
+    id: row.Id
   }
   showEditDialog.value = true
 }
@@ -327,8 +328,8 @@ function openAddDialog() {
 }
 
 function goToQuestionPage() {
-  if (editingQuizz.value && editingQuizz.value.documentId) {
-    window.location.href = '/#/question?idQuizz=' + editingQuizz.value.documentId;
+  if (editingQuizz.value && editingQuizz.value.id) {
+    window.location.href = '/#/question?idQuizz=' + editingQuizz.value.id;
   } else {
     console.warn("Aucun ID de quizz trouvé.");
   }

@@ -125,7 +125,7 @@
             rounded
             color="purple-7"
             label="Modifier"
-            @click="editHub(editingQuestion.Id, editingQuestion.Name)"
+            @click="editHub(editingQuestion.Id, editingQuestion.Name, editingQuestion.documentId)"
           />
         </q-card-actions>
       </q-card>
@@ -308,6 +308,7 @@
 import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { verifyR } from '../composables/verification'
+import { Cookies } from 'quasar'
 
 const { verifyRole } = verifyR()
 
@@ -327,7 +328,8 @@ const temp_rows = ref([])
 const responses_rows = ref([])
 const editingQuestion = ref({
   Id: null,
-  Name: ''
+  Name: '',
+  documentId: null
 })
 
 const answers = ref([
@@ -539,9 +541,6 @@ function deleteResponseRow(row) {
   console.log("Réponses IA après suppression :", responses_rows.value);
 }
 
-
-const quizzOptions = ref([])
-
 // Récupérer l'ID du quiz depuis l'URL
 const idQuizz = ref(null)
 
@@ -690,16 +689,24 @@ async function loadQuestions() {
   try {
     // Récupérer l'ID depuis l'URL ou utiliser une valeur par défaut
     const quizzId = idQuizz.value
-    const response = await fetch(`http://10.0.52.142/success/api.php/show_question/${quizzId}`)
+    const token_user = Cookies.get('token_user')
+
+    const response = await fetch(`http://10.0.52.187:1337/api/questions?populate=idQuizz&filters[idQuizz][id][$eq]=${quizzId}`, {
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token_user}`
+      }
+    })
     if (!response.ok) throw new Error('Erreur HTTP ' + response.status)
 
-    const data = await response.json()
+    const { data } = await response.json()
 
     // Adapter les données aux colonnes du tableau
-    rows.value = data.map((item) => ({
-      Id: item.idQuestion,
-      Numero: item.idQuestion,
+    rows.value = data.map(item => ({
+      Id: item.id,
+      Numero: item.id,
       Nom: item.name,
+      documentId: item.documentId
     }))
   } catch (error) {
     console.error('Erreur lors du chargement des questions:', error)
@@ -709,12 +716,18 @@ async function loadQuestions() {
 
 async function loadAnswers(idQuestion) {
   answers.value = []
+  const token_user = Cookies.get('token_user')
 
   try {
-    const response = await fetch(`http://10.0.52.142/success/api.php/show_answer/${idQuestion}`)
+    const response = await fetch(`http://10.0.52.187:1337/api/answers?populate=idQuestion&filters[idQuestion][id][$eq]=${idQuestion}`, {
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token_user}`
+      }
+    })
     if (!response.ok) throw new Error('Erreur HTTP ' + response.status)
 
-    const data = await response.json()
+    const { data } = await response.json()
 
     answers.value = data.map(a => ({
       name: a.name,
@@ -724,20 +737,6 @@ async function loadAnswers(idQuestion) {
   } catch (error) {
     console.error('Erreur lors du chargement des réponses:', error)
     answers.value = []
-  }
-}
-
-
-async function loadQuizz() {
-  try {
-    const response = await fetch('http://10.0.52.142/success/api.php/show_quizz')
-    if (!response.ok) throw new Error('Erreur HTTP ' + response.status)
-
-    const data = await response.json()
-    quizzOptions.value = data.map(q => ({ label: q.name, value: q.idQuizz }))
-  } catch (error) {
-    console.error('Erreur lors du chargement des questionnaires:', error)
-    quizzOptions.value = []
   }
 }
 
@@ -762,14 +761,19 @@ function openIADialog() {
 }
 
 async function addQuestion(name) {
-  const response = await fetch("http://10.0.52.142/success/api.php/add_question", {
+  const token_user = Cookies.get('token_user')
+
+  const response = await fetch("http://10.0.52.187:1337/api/questions", {
     method: "POST",
     headers: {
-      "Content-Type": "application/json"
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${token_user}`
     },
     body: JSON.stringify({
-      name: name,
-      idQuizz: idQuizz.value
+      data: {
+        name: name,
+        idQuizz: idQuizz.value
+      }
     })
   });
 
@@ -777,20 +781,13 @@ async function addQuestion(name) {
     throw new Error("Erreur API " + response.status);
   }
 
-  const data = await response.json();
-
-  if (data.status === "success") {
-    showDialog.value = false
-    await loadQuestions()
-  }
-
-  return data;
+  await loadQuestions()
 }
 
-async function editHub(id, name) {
-  await editQuestion(id, name)
+async function editHub(id, name, documentId) {
+  await editQuestion(documentId, name)
 
-  await deleteAnswersByIdQuestion(id)
+  await deleteAnswersByIdQuestion(documentId)
 
   await addAnswers(id)
 
@@ -799,16 +796,20 @@ async function editHub(id, name) {
 }
 
 
-async function editQuestion(idQuestion, name) {
+async function editQuestion(documentId, name) {
   try {
-    const response = await fetch("http://10.0.52.142/success/api.php/edit_question", {
-      method: "POST",
+    const token_user = Cookies.get('token_user')
+
+    const response = await fetch(`http://10.0.52.187:1337/api/questions/${documentId}`, {
+      method: "PUT",
       headers: {
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token_user}`
       },
       body: JSON.stringify({
-        idQuestion: idQuestion,
-        name: name
+        data: {
+          name: name
+        }
       })
     });
 
@@ -825,42 +826,64 @@ async function editQuestion(idQuestion, name) {
 }
 
 
-async function deleteAnswersByIdQuestion(idQuestion) {
-  try {
-    const response = await fetch("http://10.0.52.142/success/api.php/del_answer_by_idquestion", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        idQuestion: idQuestion
-      })
-    });
+async function deleteAnswersByIdQuestion(questionDocumentId) {
+  const token_user = Cookies.get('token_user')
 
-    if (!response.ok) {
-      throw new Error("Erreur API " + response.status);
+  try {
+    const res = await fetch(
+      `http://10.0.52.187:1337/api/answers?filters[idQuestion][documentId][$eq]=${questionDocumentId}`,
+      {
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token_user}`
+        }
+      }
+    )
+
+    if (!res.ok) {
+      throw new Error("Erreur récupération answers " + res.status)
     }
 
-    const data = await response.json();
-    console.log("Anciennes réponses supprimée :", data);
+    const { data } = await res.json()
+
+    for (const answer of data) {
+      await fetch(
+        `http://10.0.52.187:1337/api/answers/${answer.documentId}`,
+        {
+          method: "DELETE",
+          headers: {
+            "Authorization": `Bearer ${token_user}`
+          }
+        }
+      )
+    }
+
+    console.log(`${data.length}`)
 
   } catch (err) {
-    console.error("Erreur", err);
+    console.error(err)
   }
 }
 
+
 async function addAnswers(idQuestion) {
   try {
+    const token_user = Cookies.get('token_user')
+    const newId = idQuestion + 1
+
     for (const ans of answers.value) {
-      await fetch("http://10.0.52.142/success/api.php/add_answer", {
+      await fetch("http://10.0.52.187:1337/api/answers", {
         method: "POST",
         headers: {
-          "Content-Type": "application/json"
+          "Content-Type": "application/json",
+          'Authorization': `Bearer ${token_user}`
         },
         body: JSON.stringify({
-          name: ans.name,
-          isCorrect: ans.isCorrect ? 1 : 0,
-          idQuestion: idQuestion
+          data: {
+            name: ans.name,
+            isCorrect: ans.isCorrect ? 1 : 0,
+            idQuestion: newId
+          }
         })
       })
     }
@@ -878,29 +901,31 @@ function editRow(row) {
 
   editingQuestion.value = {
     Id: row.Id,
-    Name: row.Nom
+    Name: row.Nom,
+    documentId: row.documentId
   }
 
   loadAnswers(row.Id)
   showEditDialog.value = true
 }
 
-
 async function deleteRow(row) {
-  const response = await fetch('http://10.0.52.142/success/api.php/del_question', {
-    method: 'POST',
+  const token_user = Cookies.get('token_user')
+  const documentId = row.documentId;
+
+  const response = await fetch(`http://10.0.52.187:1337/api/questions/${documentId}`, {
+    method: 'DELETE',
     headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({ idQuestion: row.Id })
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token_user}`
+    }
   });
-  if (!response.ok) throw new Error('Erreur HTTP ' + response.status);
 
-  const data = await response.json();
-
-  if (data.status === 'success') {
-    await loadQuestions();
+   if (!response.ok) {
+    throw new Error(`Erreur DELETE ${response.status}`)
   }
+
+  await loadQuestions();
 }
 
 // Chargement depuis l'API
@@ -908,8 +933,6 @@ onMounted(async () => {
   verifyRole("admin", "/AccueilU")
   // Récupérer l'ID depuis les paramètres de l'URL
   idQuizz.value = route.query.idQuizz || null
-
-  await loadQuizz()
 
   // Si un ID est présent dans l'URL, pré-remplir le formulaire
   if (idQuizz.value) {
