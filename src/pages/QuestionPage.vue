@@ -372,39 +372,41 @@ const IAHub = async () => {
 };
 
 async function addResponseByIA() {
+  const token_user = Cookies.get('token_user')
+
   const cleanData = responses_rows.value.map(row => ({
     name: row.name,
-    isCorrect: row.isCorrect,
+    isCorrect: row.isCorrect ? 1 : 0,
     idQuestion: row.idQuestion
-  }));
+  }))
 
   try {
     for (const q of cleanData) {
-      const response = await fetch("http://10.0.52.142/success/api.php/add_answer", {
+      const response = await fetch("http://10.0.52.187:1337/api/answers", {
         method: "POST",
         headers: {
-          "Content-Type": "application/json"
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token_user}`
         },
-        body: JSON.stringify(q)
-      });
+        body: JSON.stringify({
+          data: q
+        })
+      })
 
       if (!response.ok) {
-        throw new Error("Erreur API " + response.status);
-      }
-
-      const data = await response.json();
-
-      if (data.status !== "success") {
-        console.error("Erreur ajout d'une réponse :", data);
+        const errorData = await response.json()
+        throw new Error(
+          `Erreur Strapi ${response.status} : ${JSON.stringify(errorData)}`
+        )
       }
     }
 
-    showResponseIAResult.value = false;
-    await loadQuestions();
+    showResponseIAResult.value = false
+    await loadQuestions()
 
   } catch (error) {
-    console.error("Erreur lors de l'ajout des réponses par IA :", error);
-    console.log("Données envoyées :", cleanData);
+    console.error("Erreur lors de l'ajout des réponses IA (Strapi) :", error)
+    console.log("Données envoyées :", cleanData)
   }
 }
 
@@ -648,6 +650,8 @@ Répète autant que necessaire le format JSON obligatoirement en adéquation ave
 }
 
 async function addQuestionByIA() {
+  const token_user = Cookies.get('token_user')
+
   const cleanData = temp_rows.value.map(row => ({
     name: row.Question,
     idQuizz: row.idQuizz
@@ -655,12 +659,15 @@ async function addQuestionByIA() {
 
   try {
     for (const q of cleanData) {
-      const response = await fetch("http://10.0.52.142/success/api.php/add_question", {
+      const response = await fetch("http://10.0.52.187:1337/api/questions", {
         method: "POST",
         headers: {
-          "Content-Type": "application/json"
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token_user}`
         },
-        body: JSON.stringify(q)
+        body: JSON.stringify({
+          data: q
+        })
       });
 
       if (!response.ok) {
@@ -668,10 +675,7 @@ async function addQuestionByIA() {
       }
 
       const data = await response.json();
-
-      if (data.status !== "success") {
-        console.error("Erreur ajout d'une question :", data);
-      }
+      console.log(data)
     }
 
     showIAResult.value = false;
