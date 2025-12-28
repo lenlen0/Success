@@ -786,6 +786,7 @@ async function addQuestion(name) {
   }
 
   await loadQuestions()
+  showDialog.value = false
 }
 
 async function editHub(id, name, documentId) {
