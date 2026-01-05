@@ -222,6 +222,7 @@ async function editGroup(documentId, name) {
 
 function editRow(row) {
   editingGroup.value = {
+    id: row.Id,
     documentId: row.documentId,
     Name: row.Nom,
     nb_user: row.nb_user
@@ -230,8 +231,8 @@ function editRow(row) {
 }
 
 function goToMatchUser() {
-  if (editingGroup.value && editingGroup.value.documentId) {
-    window.location.href = '/#/matchUser?documentId=' + editingGroup.value.documentId;
+  if (editingGroup.value && editingGroup.value.id) {
+    window.location.href = '/#/matchUser?idGroup=' + editingGroup.value.id;
   } else {
     console.warn("Aucun ID de groupe trouvé.");
   }

@@ -101,6 +101,7 @@
   import { ref, computed, onMounted } from 'vue'
   import { useRoute } from 'vue-router'
   import { verifyR } from '../composables/verification'
+  import { Cookies } from 'quasar'
 
   const { verifyRole } = verifyR()
 
@@ -116,8 +117,7 @@
   // Colonnes du tableau utilisateur
   const userColumns = [
     { name: 'Id', label: 'ID', align: 'left', field: 'Id', sortable: true },
-    { name: 'Nom', label: 'Nom', align: 'left', field: 'Nom', sortable: true },
-    { name: 'Prenom', label: 'Prénom', align: 'left', field: 'Prenom', sortable: true },
+    { name: 'Username', label: 'Username', align: 'left', field: 'Username', sortable: true },
     { name: 'role', label: 'Role', align: 'left', field: 'role', sortable: true }
   ]
 
@@ -132,15 +132,20 @@
 
   // Charger tous les groupes
   async function loadGroups() {
+    const token_user = Cookies.get('token_user')
     try {
-      const response = await fetch('http://10.0.52.142/success/api.php/show_group/')
+      const response = await fetch('http://10.0.52.187:1337/api/groups', {
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token_user}`
+        }
+      })
       if (!response.ok) throw new Error('Erreur HTTP ' + response.status)
 
-      const data = await response.json()
+      const { data } = await response.json()
       groups.value = data.map(item => ({
-        Id: item.idGroup,
-        Nom: item.name,
-        nb_user: item.nb_user
+        Id: item.id,
+        Nom: item.name
       }))
     } catch (err) {
       console.error('Impossible de charger les groupes :', err)
@@ -150,17 +155,22 @@
   // Charger tous les utilisateurs
   async function loadAllUsers() {
     try {
-      const response = await fetch('http://10.0.52.142/success/api.php/show_user')
-      if (!response.ok) throw new Error('Erreur HTTP ' + response.status)
+      const token_user = Cookies.get('token_user')
 
+      const response = await fetch('http://10.0.52.187:1337/api/users?populate=*', {
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token_user}`
+        }
+      })
+
+      if (!response.ok) throw new Error('Erreur HTTP ' + response.status)
       const data = await response.json()
+
       allUsers.value = data.map(item => ({
-        Id: item.id_s11,
-        Nom: item.lastname,
-        Prenom: item.firstname,
-        role: item.role.includes('admin') ? 'Admin'
-          : item.role.includes('teacher') ? 'Teacher'
-          : 'Student'
+        Id: item.id,
+        Username: item.username,
+        role: item.role?.name ?? ''
       }))
     } catch (err) {
       console.error('Impossible de charger les utilisateurs :', err)
@@ -169,62 +179,52 @@
 
   // Charger les utilisateurs du groupe sélectionné
   async function loadGroupUsers() {
-    if (!selectedGroup.value) {
+  if (!selectedGroup.value) {
+    groupUsers.value = []
+    return
+  }
+
+  try {
+    const token_user = Cookies.get('token_user')
+
+    const response = await fetch(
+      `http://10.0.52.187:1337/api/belonggroups?filters[id_group][id][$eq]=${selectedGroup.value}&populate[id_s11][populate]=role`,
+      {
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token_user}`
+        }
+      }
+    )
+
+    if (!response.ok) {
       groupUsers.value = []
       return
     }
 
-    try {
-      // On récupère tous les utilisateurs et on filtre côté client
-      // car il n'y a pas d'endpoint GET direct pour getUserByGroup
-      // On va utiliser une approche différente : récupérer tous les utilisateurs
-      // et filtrer ceux qui sont dans le groupe
+    const { data } = await response.json()
 
-      // Pour l'instant, on va charger tous les utilisateurs et filtrer
-      // En production, il faudrait un endpoint GET pour getUserByGroup
-      await loadAllUsers()
+    groupUsers.value = data
+      .filter(item => Array.isArray(item.id_s11) && item.id_s11.length > 0)
+      .map(item => {
+        const user = item.id_s11[0]
+        return {
+          idBelongGroup: item.documentId,
+          Id: user.id,
+          Username: user.username,
+          role: user.role?.name ?? ''
+        }
+      })
 
-      // On va devoir faire une requête POST pour obtenir les utilisateurs du groupe
-      // Ou utiliser une logique côté client basée sur les données disponibles
-      // Pour simplifier, on va utiliser une approche où on charge tous les utilisateurs
-      // et on filtre ceux qui sont dans le groupe sélectionné
-
-      // Note: Il faudrait idéalement un endpoint GET pour getUserByGroup
-      // Pour l'instant, on va utiliser une méthode alternative
-
-      // On récupère les utilisateurs du groupe via une requête spéciale
-      // Comme il n'y a pas d'endpoint GET direct, on va utiliser une logique différente
-      // On va créer une fonction qui récupère les utilisateurs du groupe
-
-      const response = await fetch(`http://10.0.52.142/success/api.php/show_user_group/${selectedGroup.value}`)
-
-      if (response.ok) {
-        const data = await response.json()
-        groupUsers.value = data.map(item => ({
-          Id: item.id_s11,
-          Nom: item.lastname,
-          Prenom: item.firstname,
-          role: item.role.includes('admin') ? 'Admin'
-            : item.role.includes('teacher') ? 'Teacher'
-            : 'Student'
-        }))
-      } else {
-        // Si l'endpoint n'existe pas, on filtre côté client
-        // On va devoir charger tous les utilisateurs et déterminer lesquels sont dans le groupe
-        // Pour cela, on pourrait faire une requête pour chaque utilisateur, mais c'est inefficace
-        // On va plutôt supposer que l'endpoint existe ou utiliser une autre méthode
-        groupUsers.value = []
-      }
     } catch (err) {
       console.error('Impossible de charger les utilisateurs du groupe :', err)
-      // En cas d'erreur, on essaie une approche alternative
       groupUsers.value = []
     }
 
-    // Réinitialiser les sélections
     selectedAvailableUsers.value = []
     selectedGroupUsers.value = []
   }
+
 
   // Ajouter des utilisateurs au groupe
   async function addUsersToGroup() {
@@ -233,15 +233,20 @@
     }
 
     try {
+      const token_user = Cookies.get('token_user')
+
       const promises = selectedAvailableUsers.value.map(user =>
-        fetch('http://10.0.52.142/success/api.php/add_user_to_group', {
+        fetch('http://10.0.52.187:1337/api/belonggroups?populate=*', {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            "Authorization": `Bearer ${token_user}`
           },
           body: JSON.stringify({
-            id_s11: user.Id,
-            idGroup: selectedGroup.value
+            data: {
+              id_s11: user.Id,
+              id_group: selectedGroup.value
+            }
           })
         })
       )
@@ -267,18 +272,16 @@
     if (!selectedGroup.value || selectedGroupUsers.value.length === 0) {
       return
     }
-
     try {
+      const token_user = Cookies.get('token_user')
+
       const promises = selectedGroupUsers.value.map(user =>
-        fetch('http://10.0.52.142/success/api.php/remove_user_from_group', {
-          method: 'POST',
+        fetch(`http://10.0.52.187:1337/api/belonggroups/${user.idBelongGroup}`, {
+          method: 'DELETE',
           headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            id_s11: user.Id,
-            idGroup: selectedGroup.value
-          })
+            'Content-Type': 'application/json',
+            "Authorization": `Bearer ${token_user}`
+          }
         })
       )
 
