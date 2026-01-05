@@ -346,14 +346,8 @@ async function loadExams() {
     const examID = exam.id
 
     const takeExamsForThisExam = TakeExams.filter(takeexam => {
-    const idExamData = takeexam.idExam
-    if (Array.isArray(idExamData)) {
-      return idExamData.some(e => e.id === examID)
-    } else {
-      return idExamData === examID
-    }
+        return takeexam.idExam?.id === examID
     })
-
 
     const nbParticipants = takeExamsForThisExam.length
 
