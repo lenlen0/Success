@@ -345,9 +345,15 @@ async function loadExams() {
   rows.value = exams.map(exam => {
     const examID = exam.id
 
-    const takeExamsForThisExam = TakeExams.filter(takeexam =>
-      takeexam.idExam?.some(e => e.id === examID)
-    )
+    const takeExamsForThisExam = TakeExams.filter(takeexam => {
+    const idExamData = takeexam.idExam
+    if (Array.isArray(idExamData)) {
+      return idExamData.some(e => e.id === examID)
+    } else {
+      return idExamData === examID
+    }
+    })
+
 
     const nbParticipants = takeExamsForThisExam.length
 
