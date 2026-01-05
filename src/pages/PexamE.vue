@@ -64,15 +64,23 @@
             </div>
 
             <div class="row justify-between q-mt-lg">
-              <q-btn
-                v-if="currentIndex < questionsList.length - 1"
-                label="Passer la question"
-                color="grey-7"
-                flat
-                icon="skip_next"
-                @click="skipQuestion"
-              />
-              <div v-else></div>
+              <div class="row q-gutter-sm">
+                <q-btn
+                  label="Annuler"
+                  color="negative"
+                  flat
+                  icon="close"
+                  @click="cancelExam"
+                />
+                <q-btn
+                  v-if="currentIndex < questionsList.length - 1"
+                  label="Passer la question"
+                  color="grey-7"
+                  flat
+                  icon="skip_next"
+                  @click="skipQuestion"
+                />
+              </div>
 
               <div class="row items-center">
                 <q-btn
@@ -263,6 +271,9 @@ function skipQuestion() {
     loadCurrentQuestionData().then(() => {
       loading.value = false;
     });
+  } else {
+    selectedAnswer.value = null
+    finishExam()
   }
 }
 
@@ -384,6 +395,10 @@ function validateAnswer() {
       loading.value = false;
     });
   }
+}
+
+function cancelExam() {
+  router.push('/ExamU')
 }
 
 function finishExam() {

@@ -263,6 +263,9 @@ function skipQuestion() {
     loadCurrentQuestionData().then(() => {
       loading.value = false;
     });
+  } else {
+    selectedAnswer.value = null
+    finishExam()
   }
 }
 
