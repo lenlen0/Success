@@ -79,8 +79,11 @@ import { ref } from 'vue'
 import { onMounted } from 'vue'
 import { useRouter } from 'vue-router';
 import { verifyUR } from '../composables/verificationU'
+import { getInfoUser } from 'src/composables/infouser';
+import { Cookies } from 'quasar';
 
 const { verifyUserRole } = verifyUR()
+const { infoUser } = getInfoUser()
 
 const router = useRouter();
 const rows = ref([])
@@ -105,19 +108,26 @@ const columns = [
 
 async function loadExamU(id_s11) {
   try {
-    const response = await fetch(`http://10.0.52.142/success/api.php/show_passed_exam/${id_s11}`)
+    const token_user = Cookies.get('token_user')
+
+    const response = await fetch(`http://10.0.52.187:1337/api/takeexams?filters[id_s11][id][$eq]=${id_s11}&populate=*`,
+    {
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token_user}`
+      }
+    })
 
     if (!response.ok) throw new Error('Erreur HTTP ' + response.status)
 
-    const data = await response.json()
+    const { data } = await response.json()
     rows.value = data.map(item => ({
-      idExam: item.idExam,
-      exam_name: item.exam_name,
-      date_exam: item.date_exam,
-      status: item.status,
-      avg_grade: item.avg_grade,
-      code: item.code,
-      idQuizz: item.idQuizz
+      idExam: item.idExam.id,
+      exam_name: item.idExam.name,
+      date_exam: item.idExam.createdAt,
+      status: item.idExam.role,
+      avg_grade: item.grade,
+      code: item.idExam.code
     }))
   } catch (err) {
     console.error('Impossible de charger les exams :', err)
@@ -339,7 +349,9 @@ function retryExam(row) {
 
 onMounted(async () => {
   verifyUserRole("admin", "logged_user", "/");
-  await loadExamU(3)
+  const currentUser = await infoUser()
+  console.log(currentUser.id)
+  await loadExamU(currentUser.id)
 })
 </script>
 
