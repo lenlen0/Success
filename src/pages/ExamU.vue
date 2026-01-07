@@ -110,7 +110,7 @@ async function loadExamU(id_s11) {
   try {
     const token_user = Cookies.get('token_user')
 
-    const response = await fetch(`http://10.0.52.187:1337/api/takeexams?filters[id_s11][id][$eq]=${id_s11}&populate=*`,
+    const response = await fetch(`http://10.0.52.187:1337/api/takeexams?filters[id_s11][id][$eq]=${id_s11}&populate[idExam][populate]=idQuizz`,
     {
       headers: {
         "Content-Type": "application/json",
@@ -127,7 +127,8 @@ async function loadExamU(id_s11) {
       date_exam: item.idExam.createdAt,
       status: item.idExam.role,
       avg_grade: item.grade,
-      code: item.idExam.code
+      code: item.idExam.code,
+      idQuizz: item.idExam.idQuizz?.id
     }))
   } catch (err) {
     console.error('Impossible de charger les exams :', err)
@@ -136,13 +137,21 @@ async function loadExamU(id_s11) {
 
 async function getQuestions(idQuizz) {
   try {
-    const response = await fetch(`http://10.0.52.142/success/api.php/show_question/${idQuizz}`)
+    const token_user = Cookies.get('token_user')
+
+    const response = await fetch(`http://10.0.52.187:1337/api/questions?filters[idQuizz][id][$eq]=${idQuizz}&populate=*`,
+    {
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token_user}`
+      }
+    })
 
     if (!response.ok) throw new Error('Erreur HTTP ' + response.status)
 
-    const data = await response.json()
+    const { data } = await response.json()
     questions.value = data.map(item => ({
-      idQuestion: item.idQuestion,
+      idQuestion: item.id,
       name: item.name
     }))
 
@@ -158,13 +167,21 @@ async function getQuestions(idQuizz) {
 
 async function getAnswers(idQuestion) {
   try {
-    const response = await fetch(`http://10.0.52.142/success/api.php/show_answer/${idQuestion}`)
+    const token_user = Cookies.get('token_user')
+
+    const response = await fetch(`http://10.0.52.187:1337/api/answers?filters[idQuestion][id][$eq]=${idQuestion}&populate=*`,
+    {
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token_user}`
+      }
+    })
 
     if (!response.ok) throw new Error('Erreur HTTP ' + response.status)
 
-    const data = await response.json()
+    const { data } = await response.json()
     answers.value[idQuestion] = data.map(item => ({
-      idAnswer: item.idAnswer,
+      idAnswer: item.id,
       name: item.name,
       isCorrect: item.isCorrect,
       selectedByUser: false,
@@ -177,18 +194,19 @@ async function getAnswers(idQuestion) {
 
 async function getAnswersFromUser(id_s11, idExam) {
   try {
-    const response = await fetch("http://10.0.52.142/success/api.php/get_answers_from_user", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        id_s11: id_s11,
-        idExam: idExam
-      })
+    const token_user = Cookies.get('token_user')
+
+    const response = await fetch(`http://10.0.52.187:1337/api/takeexams?filters[idExam][id][$eq]=${idExam}&filters[id_s11][id][$eq]=${id_s11}&populate=*`,
+    {
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token_user}`
+      }
     })
 
     if (!response.ok) throw new Error("Erreur API " + response.status)
 
-    const data = await response.json()
+    const { data } = await response.json()
 
     let flatArray = []       // cas où on a juste une liste d'idAnswer choisis
     let perQuestionMap = {}  // cas où on a une valeur par question (indexable)
@@ -207,8 +225,13 @@ async function getAnswersFromUser(id_s11, idExam) {
         }
       } else if (Array.isArray(raw)) {
         flatArray = raw.slice()
+      } else if (typeof raw === 'object' && Array.isArray(raw.grade)) {
+        flatArray = raw.grade.slice()
       } else {
-        console.warn('getAnswersFromUser: answer existe mais n\'est pas un tableau ni string', raw)
+        console.warn(
+          'getAnswersFromUser: answer existe mais format inconnu',
+          raw
+        )
       }
     }
 
@@ -324,8 +347,9 @@ function correlateUserAnswers(resultObj) {
 
 async function detailsRow(row) {
   try {
+    const currentUser = await infoUser()
     await getQuestions(row.idQuizz)
-    const resultObj = await getAnswersFromUser(3, row.idExam)
+    const resultObj = await getAnswersFromUser(currentUser.id, row.idExam)
     correlateUserAnswers(resultObj)
     showDetailsDialog.value = true
   } catch (err) {
