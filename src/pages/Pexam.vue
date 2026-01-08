@@ -110,8 +110,11 @@ defineOptions({ name: 'PageExam' })
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { verifyUR } from '../composables/verificationU'
+import { getInfoUser } from 'src/composables/infouser'
 
 const { verifyUserRole } = verifyUR()
+const { infoUser } = getInfoUser()
+import { Cookies } from 'quasar'
 
 const route = useRoute()
 const router = useRouter()
@@ -170,80 +173,113 @@ function forceTo1or0(val) {
 // 1. Config Examen
 async function getExamDetails(examId) {
   try {
-    const url = `http://10.0.52.142/success/api.php/show_exam/${examId}`;
-    const response = await fetch(url);
-    if (response.ok) {
-      const data = await response.json();
+    const token_user = Cookies.get('token_user')
+    const url = `http://10.0.52.187:1337/api/exams?filters[id]=${examId}&populate=*`
 
-      let examData = null;
-      if (Array.isArray(data) && data.length > 0) examData = data[0];
-      else if (data.records && Array.isArray(data.records)) examData = data.records[0];
-      else examData = data;
-
-      if (examData) {
-        const keys = Object.keys(examData);
-        const keyMalus = keys.find(k => k.toLowerCase().includes('malus')) || 'hasMalus';
-        const keyScale = keys.find(k => k.toLowerCase().includes('scale')) || 'scale';
-
-        hasMalus.value = forceTo1or0(examData[keyMalus]);
-        scale.value = forceTo1or0(examData[keyScale]);
+    const response = await fetch(url, {
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token_user}`
       }
-    }
+    })
+
+    if (!response.ok) throw new Error("Erreur API Exam")
+
+    const json = await response.json()
+
+    if (!Array.isArray(json.data) || json.data.length === 0) return
+
+    const exam = json.data[0]
+
+    hasMalus.value = forceTo1or0(exam.hasMalus)
+    scale.value = forceTo1or0(exam.scale)
+
   } catch (err) {
-    console.error("Erreur getExamDetails :", err);
+    console.error("❌ Erreur getExamDetails :", err)
   }
 }
+
 
 // 2. Questions
 async function getQuestionsFromQuiz(quizId) {
   try {
-    const url = `http://10.0.52.142/success/api.php/show_question/${quizId}`;
-    const response = await fetch(url);
-    if (!response.ok) throw new Error(`Erreur API (${response.status})`);
+    const token_user = Cookies.get('token_user')
+    const url = `http://10.0.52.187:1337/api/questions?filters[idQuizz][id]=${quizId}&populate=*`
 
-    const data = await response.json();
-    const list = Array.isArray(data) ? data : (data.records || []);
+    const response = await fetch(url, {
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token_user}`
+      }
+    })
 
-    if (list.length > 0) {
-      questionsList.value = list;
-    } else {
-      errorMessage.value = "Ce questionnaire est vide.";
+    if (!response.ok) throw new Error(`Erreur API (${response.status})`)
+
+    const json = await response.json()
+
+    if (!Array.isArray(json.data) || json.data.length === 0) {
+      errorMessage.value = "Ce questionnaire est vide."
+      return
     }
+
+    questionsList.value = json.data.map(q => ({
+      id: q.id,
+      name: q.name
+    }))
+
   } catch (err) {
-    console.error("Erreur getQuestionsFromQuiz :", err);
-    errorMessage.value = "Erreur chargement questions.";
+    console.error("❌ Erreur getQuestionsFromQuiz :", err)
+    errorMessage.value = "Erreur chargement questions."
   }
 }
 
+
 // 3. Charger Question
 async function loadCurrentQuestionData() {
-  const currentQ = questionsList.value[currentIndex.value];
-  idQuestion.value = currentQ.id || currentQ.idQuestion;
-  currentQuestionName.value = currentQ.name;
+  const currentQ = questionsList.value[currentIndex.value]
 
-  selectedAnswer.value = selectedAnswers.value[currentIndex.value] || null;
-  rows.value = [];
-  await loadAnswers(idQuestion.value);
+  idQuestion.value = currentQ.id
+  currentQuestionName.value = currentQ.name
+
+  selectedAnswer.value = selectedAnswers.value[currentIndex.value] || null
+  rows.value = []
+
+  await loadAnswers(idQuestion.value)
 }
 
 // 4. Charger Réponses
 async function loadAnswers(questionId) {
   try {
-    const url = `http://10.0.52.142/success/api.php/show_answer/${questionId}`;
-    const response = await fetch(url);
-    if (response.ok) {
-      const data = await response.json();
-      const answersList = Array.isArray(data) ? data : (data.records || []);
+    const token_user = Cookies.get('token_user')
+    const url = `http://10.0.52.187:1337/api/answers?filters[idQuestion][id]=${questionId}&populate=*`
 
-      rows.value = answersList.map(item => ({
-        name: item.name ?? item.label ?? item.text ?? '',
-        idAnswer: item.id ?? item.idAnswer ?? item.ID ?? item.answer_id ?? null
-      }));
+    const response = await fetch(url, {
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token_user}`
+      }
+    })
+
+    if (!response.ok) throw new Error("Erreur API Answers")
+
+    const json = await response.json()
+
+    if (!Array.isArray(json.data)) {
+      rows.value = []
+      return
     }
+
+    rows.value = json.data.map(a => ({
+      idAnswer: a.id,
+      name: a.name
+    }))
+
   } catch (err) {
-    console.error("Erreur loadAnswers :", err);
+    console.error("❌ Erreur loadAnswers :", err)
+    rows.value = []
   }
 }
+
 
 // Gestion Clic
 function toggleAnswer(ansId) {
@@ -269,26 +305,31 @@ function skipQuestion() {
 // Vérification
 async function getAnswerStatus(questionId, answerId) {
   try {
-    const url = `http://10.0.52.142/success/api.php/show_answer/${questionId}`;
-    const response = await fetch(url);
-    if (response.ok) {
-      const data = await response.json();
-      const answersList = Array.isArray(data) ? data : (data.records || []);
+    const token_user = Cookies.get('token_user')
+    const url = `http://10.0.52.187:1337/api/answers?filters[idQuestion][id]=${questionId}&populate=*`
 
-      const answer = answersList.find(item =>
-        String(item.id ?? item.idAnswer) === String(answerId)
-      );
-
-      if (answer) {
-        const isCorrect = answer.isCorrect ?? answer.correct;
-        if (forceTo1or0(isCorrect) === 1) return 1;
-        return -1;
+    const response = await fetch(url, {
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token_user}`
       }
-    }
+    })
+
+    if (!response.ok) throw new Error("Erreur API AnswerStatus")
+
+    const json = await response.json()
+
+    if (!Array.isArray(json.data)) return 0
+
+    const answer = json.data.find(a => String(a.id) === String(answerId))
+    if (!answer) return 0
+
+    return forceTo1or0(answer.isCorrect) === 1 ? 1 : -1
+
   } catch (err) {
-    console.error(`Erreur getAnswerStatus Q${questionId}:`, err);
+    console.error(`❌ Erreur getAnswerStatus Q${questionId}:`, err)
+    return 0
   }
-  return 0;
 }
 
 function cleanAnswersArray() {
@@ -353,15 +394,24 @@ async function calculateGrade(userAnswers) {
 // Envoi
 async function submitExam(answer, grade) {
   try {
-    const url = "http://10.0.52.142/success/api.php/user_result_exam";
-    const response = await fetch(url, {
+    const token_user = Cookies.get('token_user')
+    const currentUser = await infoUser()
+
+    const url = "http://10.0.52.187:1337/api/takeexams";
+    const response = await fetch(url,
+    {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token_user}`
+      },
       body: JSON.stringify({
-        id_s11: 3,
-        idExam: idExam.value,
-        answer: answer,
-        grade: grade
+        data: {
+          id_s11: currentUser.id,
+          idExam: idExam.value,
+          answer: answer,
+          grade: grade
+        }
       })
     });
 
@@ -400,7 +450,7 @@ function finishExam() {
 
       setTimeout(() => {
         router.push('/AccueilU');
-      }, 1500);
+      }, 500);
 
     } catch (err) {
       loading.value = false;
