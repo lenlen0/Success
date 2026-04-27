@@ -16,57 +16,76 @@
         table-header-class="bg-purple-1 text-purple-10"
         :rows="rows"
         :columns="columns"
-        row-key="nom"
+        row-key="id"
+        :loading="loading"
       >
         <!-- Slot pour customiser la colonne "action" -->
         <template v-slot:body-cell-action="props">
-          <q-btn flat color="purple-7" icon="visibility" align="center" @click="detailsRow(props.row)" />
-          <q-btn flat color="purple-7" icon="replay" align="center" @click="retryExam(props.row)" />
+          <q-td :props="props" class="text-center">
+            <q-btn v-if="props.row.status !== 'Entrainement'" flat round color="purple-7" icon="visibility" @click="detailsRow(props.row)">
+              <q-tooltip>Voir les détails</q-tooltip>
+            </q-btn>
+            <q-btn flat round color="purple-7" icon="replay" @click="retryExam(props.row)">
+              <q-tooltip>Refaire l'examen (Entrainement)</q-tooltip>
+            </q-btn>
+          </q-td>
         </template>
       </q-table>
 
-      <!-- Permet d'afficher le détails d'un Examen passé -->
+      <!-- Détails d'un Examen passé -->
       <q-dialog v-model="showDetailsDialog" persistent>
-        <q-card style="min-width: 800px;">
-          <q-card-section class="bg-purple-1 text-purple-10">
-            <div class="text-h6">Details de l'examen</div>
+        <q-card style="min-width: 800px; max-width: 90vw;">
+          <q-card-section class="bg-purple-1 text-purple-10 row items-center">
+            <div class="text-h6">Détails de l'examen : {{ selectedExamName }}</div>
+            <q-space />
+            <q-btn icon="close" flat round dense v-close-popup />
           </q-card-section>
 
-          <q-card-section>
-            <div v-for="(question) in questions" :key="question.idQuestion" class="q-mb-xl">
-              <h2 class="text-h6" style="color: #4a148c;">{{ question.name }}</h2>
+          <q-card-section style="max-height: 70vh" class="scroll">
+            <div v-if="loadingDetails" class="column items-center q-pa-lg">
+              <q-spinner color="purple-7" size="40px" />
+              <div class="q-mt-sm">Chargement des détails...</div>
+            </div>
+
+            <div v-else v-for="(question) in questions" :key="question.id" class="q-mb-xl">
+              <div class="text-h6 text-purple-10 q-mb-md">{{ question.name }}</div>
 
               <!-- Si aucune réponse faite -->
-              <div v-if="answers[question.idQuestion]?.noAnswerGiven">
-                <div class="text-negative text-weight-bold q-mb-sm">Vous n'avez pas répondu à cette question.</div>
+              <div v-if="question.noAnswerGiven" class="q-mb-md">
+                <q-banner dense class="bg-red-1 text-red-9 rounded-borders">
+                  Vous n'avez pas répondu à cette question.
+                </q-banner>
               </div>
 
               <!-- Liste des réponses -->
-              <div v-for="answer in answers[question.idQuestion]" :key="answer.idAnswer" class="q-mb-sm">
+              <div v-for="answer in question.allAnswers" :key="answer.id" class="q-mb-sm">
                 <q-card
-                  class="my-card text-white text-subtitle2"
-                  :style="answer.isCorrect === 1 ? 'background-color: #05c46b;' : 'background-color: #ff5e57;'"
+                  flat
+                  bordered
+                  class="text-subtitle2 rounded-borders"
+                  :style="getAnswerStyle(answer)"
                 >
-                  <q-card-section class="row items-center no-wrap" style="gap: 12px;">
-
-                    <!-- Icône X pour réponse choisie -->
-                    <div v-if="answer.selectedByUser">
-                      <q-icon name="close" size="22px" color="white" />
-                    </div>
-
-                    <!-- Texte de la réponse -->
-                    <div class="col" style="white-space: normal;">
+                  <q-card-section class="row items-center no-wrap q-py-sm" style="gap: 12px;">
+                    <!-- Icône pour indiquer le choix de l'utilisateur -->
+                    <q-icon 
+                      :name="answer.selectedByUser ? 'check_circle' : 'radio_button_unchecked'" 
+                      :color="answer.selectedByUser ? 'white' : 'grey-5'"
+                      size="24px" 
+                    />
+                    
+                    <div class="col" :class="answer.selectedByUser || answer.isCorrect ? 'text-white' : 'text-grey-9'">
                       {{ answer.name }}
                     </div>
 
+                    <q-badge v-if="answer.isCorrect" color="white" text-color="green-9" label="Bonne réponse" />
                   </q-card-section>
                 </q-card>
               </div>
             </div>
           </q-card-section>
 
-          <q-card-actions>
-            <q-btn unelevated rounded color="purple-7" label="Annuler" v-close-popup />
+          <q-card-actions align="right" class="q-pa-md">
+            <q-btn unelevated rounded color="purple-7" label="Fermer" v-close-popup />
           </q-card-actions>
         </q-card>
       </q-dialog>
@@ -75,280 +94,217 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
-import { onMounted } from 'vue'
-import { useRouter } from 'vue-router';
-import { verifyUR } from '../composables/verificationU'
+import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { Cookies } from 'quasar'
 
-const { verifyUserRole } = verifyUR()
+const BASE_STRAPI_URL = "http://10.0.52.187:1337"
+const userToken = Cookies.get('token_user')
 
-const router = useRouter();
+const router = useRouter()
 const rows = ref([])
 const questions = ref([])
-const answers = ref({})
+const loading = ref(false)
+const loadingDetails = ref(false)
 const showDetailsDialog = ref(false)
+const selectedExamName = ref('')
+
+const currentUserId = ref(null)
+const userName = ref('')
 
 const columns = [
-  { name: 'exam_name', label: 'Nom', align: 'left', field: 'exam_name' },
-  { name: 'date_exam', label: 'Date', align: 'left', field: 'date_exam' },
-  { name: 'status', label: 'Status', align: 'left', field: 'status' },
-  { name: 'avg_grade', label: 'Note', align: 'left', field: 'avg_grade' },
+  { name: 'exam_name', label: 'Nom', align: 'left', field: 'exam_name', sortable: true },
+  { name: 'date_exam', label: 'Date', align: 'left', field: 'date_exam', sortable: true },
+  { name: 'status', label: 'Rôle', align: 'left', field: 'status' },
+  { name: 'avg_grade', label: 'Note', align: 'left', field: 'avg_grade', sortable: true },
   { name: 'code', label: 'Code', align: 'left', field: 'code' },
-  {
-    name: 'action',
-    label: 'Action',
-    align: 'center',
-    style: 'width: 120px; max-width: 120px;',
-    headerStyle: 'width: 120px; max-width: 120px;'
-  }
+  { name: 'action', label: 'Action', align: 'center' }
 ]
 
-async function loadExamU(id_s11) {
+// 1. Charger Infos Utilisateur
+async function loadUserData() {
+    if (!userToken) return;
+    try {
+        const res = await fetch(`${BASE_STRAPI_URL}/api/users/me`, {
+            headers: { Authorization: `Bearer ${userToken}` }
+        })
+        if (res.ok) {
+            const data = await res.json();
+            currentUserId.value = data.id;
+            userName.value = data.username || '';
+        }
+    } catch (err) {
+        console.error('Erreur profil Strapi:', err);
+    }
+}
+
+// 2. Charger les examens passés
+async function loadExamU() {
+  if (!currentUserId.value) {
+    console.warn("loadExamU: Aucun ID utilisateur trouvé.");
+    return;
+  }
+  loading.value = true;
   try {
-    const response = await fetch(`http://10.0.52.142/success/api.php/show_passed_exam/${id_s11}`)
+    // On demande de peupler idExam ET son idQuizz interne avec une syntaxe plus robuste
+    const url = `${BASE_STRAPI_URL}/api/takeexams?populate[idExam][populate]=*&populate=id_s11&sort=createdAt:desc`;
+    const response = await fetch(url, {
+      headers: { Authorization: `Bearer ${userToken}` }
+    });
 
-    if (!response.ok) throw new Error('Erreur HTTP ' + response.status)
+    if (!response.ok) throw new Error('Erreur HTTP ' + response.status);
 
-    const data = await response.json()
-    rows.value = data.map(item => ({
-      idExam: item.idExam,
-      exam_name: item.exam_name,
-      date_exam: item.date_exam,
-      status: item.status,
-      avg_grade: item.avg_grade,
-      code: item.code,
-      idQuizz: item.idQuizz
-    }))
+    const responseData = await response.json();
+    const allResults = responseData.data || [];
+    console.log("--- DEBUG EVALUATIONS ---");
+    console.log("Mon ID (users/me):", currentUserId.value);
+    console.log("Mon Pseudo (users/me):", userName.value);
+    console.log("Nombre total en base:", allResults.length);
+
+    rows.value = allResults.filter(item => {
+        const attr = item.attributes || item;
+        const userData = attr.id_s11?.data || attr.id_s11;
+        
+        if (!userData) {
+            console.log(`Ligne ${item.id} rejetée: id_s11 est vide`);
+            return false;
+        }
+        
+        const uId = userData.id || userData;
+        const uName = userData.attributes?.username || userData.username || (typeof userData === 'string' ? userData : '');
+        
+        const match = String(uId) === String(currentUserId.value) || 
+                     String(uName).toLowerCase() === String(userName.value).toLowerCase();
+        
+        if (!match) {
+            console.log(`Ligne ${item.id} rejetée: Aucun match pour`, { uId, uName });
+        } else {
+            console.log(`Ligne ${item.id} ACCEPTÉE !`);
+        }
+        
+        return match;
+    }).map(item => {
+      console.log("Traitement item:", item);
+      const attr = item.attributes || item;
+      const examData = attr.idExam?.data || attr.idExam || {};
+      const examAttr = examData.attributes || examData;
+      
+      const quizData = examAttr.idQuizz?.data || (examAttr.idQuizz && examAttr.idQuizz.id ? examAttr.idQuizz : {});
+      const quizId = quizData.id || (examAttr.idQuizz && typeof examAttr.idQuizz === 'number' ? examAttr.idQuizz : null);
+
+      return {
+        id: item.id,
+        idExam: examData.id,
+        exam_name: examAttr.name || 'Examen sans nom',
+        date_exam: new Date(attr.createdAt).toLocaleDateString('fr-FR', {
+            day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'
+        }),
+        status: examAttr.role || examAttr.status || 'N/A',
+        avg_grade: attr.grade ? `${parseFloat(attr.grade).toFixed(1)}/20` : 'N/A',
+        code: examAttr.code || '-',
+        idQuizz: quizId,
+        userAnswers: attr.answer
+      };
+    });
+
+    console.log("Lignes finales dans le tableau:", rows.value);
   } catch (err) {
-    console.error('Impossible de charger les exams :', err)
+    console.error('Impossible de charger les exams :', err);
+  } finally {
+    loading.value = false;
   }
 }
 
-async function getQuestions(idQuizz) {
-  try {
-    const response = await fetch(`http://10.0.52.142/success/api.php/show_question/${idQuizz}`)
-
-    if (!response.ok) throw new Error('Erreur HTTP ' + response.status)
-
-    const data = await response.json()
-    questions.value = data.map(item => ({
-      idQuestion: item.idQuestion,
-      name: item.name
-    }))
-
-    answers.value = {}
-
-    // load answers for each question in parallel (faster)
-    await Promise.all(questions.value.map(q => getAnswers(q.idQuestion)))
-
-  } catch (err) {
-    console.error('Impossible de charger les questions :', err)
-  }
-}
-
-async function getAnswers(idQuestion) {
-  try {
-    const response = await fetch(`http://10.0.52.142/success/api.php/show_answer/${idQuestion}`)
-
-    if (!response.ok) throw new Error('Erreur HTTP ' + response.status)
-
-    const data = await response.json()
-    answers.value[idQuestion] = data.map(item => ({
-      idAnswer: item.idAnswer,
-      name: item.name,
-      isCorrect: item.isCorrect,
-      selectedByUser: false,
-      missedCorrect: false
-    }))
-  } catch (err) {
-    console.error('Impossible de charger les réponses :', err)
-  }
-}
-
-async function getAnswersFromUser(id_s11, idExam) {
-  try {
-    const response = await fetch("http://10.0.52.142/success/api.php/get_answers_from_user", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        id_s11: id_s11,
-        idExam: idExam
-      })
-    })
-
-    if (!response.ok) throw new Error("Erreur API " + response.status)
-
-    const data = await response.json()
-
-    let flatArray = []       // cas où on a juste une liste d'idAnswer choisis
-    let perQuestionMap = {}  // cas où on a une valeur par question (indexable)
-
-    if (Array.isArray(data) && data.length > 0 && ('answer' in data[0])) {
-      const raw = data[0].answer
-
-      if (typeof raw === 'string') {
-        try {
-          const parsed = JSON.parse(raw)
-          if (Array.isArray(parsed)) {
-            flatArray = parsed
-          }
-        } catch (err) {
-          console.warn('getAnswersFromUser: answer est une string non JSON :', raw, err)
-        }
-      } else if (Array.isArray(raw)) {
-        flatArray = raw.slice()
-      } else {
-        console.warn('getAnswersFromUser: answer existe mais n\'est pas un tableau ni string', raw)
-      }
-    }
-
-    //API envoie un tableau d'ids (data === [598,562,...])
-    if (Array.isArray(data) && data.length > 0 && typeof data[0] === 'number') {
-      flatArray = data.slice()
-    }
-
-    //API envoie un tableau d'objet
-    if (Array.isArray(data) && data.length > 0 && data[0] && typeof data[0] === 'object' && ('idQuestion' in data[0])) {
-      for (const item of data) {
-        perQuestionMap[item.idQuestion] = item.answer ?? null
-        if (item.answer !== null && item.answer !== undefined) {
-          flatArray.push(item.answer)
-        }
-      }
-    }
-
-    // 4) si aucune des heuristiques ci-dessus n'a trouvé, on cherche récursivement des idAnswer dans l'objet
-    if (flatArray.length === 0 && Object.keys(perQuestionMap).length === 0) {
-      // recursion pour trouver des arrays d'entiers dans l'objet `data`
-      const collectInts = (obj) => {
-        if (!obj) return []
-        if (Array.isArray(obj)) {
-          const ints = obj.filter(el => typeof el === 'number')
-          if (ints.length) return ints
-          // sinon tenter à l'intérieur
-          for (const el of obj) {
-            const sub = collectInts(el)
-            if (sub.length) return sub
-          }
-          return []
-        } else if (typeof obj === 'object') {
-          for (const k of Object.keys(obj)) {
-            const sub = collectInts(obj[k])
-            if (sub.length) return sub
-          }
-          return []
-        }
-        return []
-      }
-      const found = collectInts(data)
-      if (found.length) flatArray = found
-    }
-
-    // nettoyage : flatArray peut contenir nulls -> on les garde dans flatRaw (pour debug),
-    // mais pour le lookup on enlève les nulls
-    const flatRaw = Array.isArray(flatArray) ? flatArray : []
-    const flatFiltered = flatRaw.filter(x => x !== null && x !== undefined)
-
-    const selectedSet = new Set(flatFiltered)
-
-    return { selectedSet, flatRaw, perQuestionMap }
-
-  } catch (err) {
-    console.error('Erreur getAnswersFromUser :', err)
-    return { selectedSet: new Set(), flatRaw: [], perQuestionMap: {} }
-  }
-}
-
-
-function correlateUserAnswers(resultObj) {
-  const { selectedSet, perQuestionMap } = resultObj || {}
-  // reset
-  for (const qId of Object.keys(answers.value)) {
-    for (const ans of answers.value[qId]) {
-      ans.selectedByUser = false
-      ans.noAnswerGiven = false
-    }
-  }
-
-  // Si on a un perQuestionMap (idQuestion -> idAnswer null)
-  if (perQuestionMap && Object.keys(perQuestionMap).length > 0) {
-    for (const qId of Object.keys(answers.value)) {
-      const val = perQuestionMap[qId]
-      if (val === null) {
-        answers.value[qId].noAnswerGiven = true
-      } else if (val === undefined) {
-        let anySelected = false
-        for (const ans of answers.value[qId]) {
-          if (selectedSet.has(ans.idAnswer)) {
-            ans.selectedByUser = true
-            anySelected = true
-          }
-        }
-        answers.value[qId].noAnswerGiven = !anySelected
-      } else {
-        // val est un idAnswer choisi pour cette question
-        for (const ans of answers.value[qId]) {
-          if (ans.idAnswer === val) {
-            ans.selectedByUser = true
-          }
-        }
-        answers.value[qId].noAnswerGiven = false
-      }
-    }
-    return
-  }
-
-  for (const qId of Object.keys(answers.value)) {
-    let anySelected = false
-    for (const ans of answers.value[qId]) {
-      if (selectedSet.has(ans.idAnswer)) {
-        ans.selectedByUser = true
-        anySelected = true
-      } else {
-        ans.selectedByUser = false
-      }
-    }
-    answers.value[qId].noAnswerGiven = !anySelected
-  }
-}
-
+// 3. Charger Détails (Questions & Réponses)
 async function detailsRow(row) {
-  try {
-    await getQuestions(row.idQuizz)
-    const resultObj = await getAnswersFromUser(3, row.idExam)
-    correlateUserAnswers(resultObj)
-    showDetailsDialog.value = true
-  } catch (err) {
-    console.error('Erreur lors de l\'ouverture des détails :', err)
+  if (!row.idQuizz) {
+    alert("Impossible de trouver le quiz associé à cet examen. Vérifiez que l'examen possède un quiz dans Strapi.");
+    return;
   }
+  selectedExamName.value = row.exam_name;
+  showDetailsDialog.value = true;
+  loadingDetails.value = true;
+  questions.value = [];
+
+  try {
+    let selectedAnswerIds = [];
+    if (typeof row.userAnswers === 'string') {
+      try { selectedAnswerIds = JSON.parse(row.userAnswers); } catch { /* ignore */ }
+    } else if (Array.isArray(row.userAnswers)) {
+      selectedAnswerIds = row.userAnswers;
+    }
+
+    const qUrl = `${BASE_STRAPI_URL}/api/questions?filters[idQuizz][id][$eq]=${row.idQuizz}&populate=*`;
+    const qRes = await fetch(qUrl, { headers: { Authorization: `Bearer ${userToken}` } });
+    const qData = await qRes.json();
+    const rawQuestions = qData.data || [];
+
+    const fullQuestions = await Promise.all(rawQuestions.map(async (q) => {
+      const qAttr = q.attributes || q;
+      const aUrl = `${BASE_STRAPI_URL}/api/answers?filters[idQuestion][id][$eq]=${q.id}`;
+      const aRes = await fetch(aUrl, { headers: { Authorization: `Bearer ${userToken}` } });
+      const aData = await aRes.json();
+      const rawAnswers = aData.data || [];
+
+      const allAnswers = rawAnswers.map(a => {
+        const aAttr = a.attributes || a;
+        return {
+          id: a.id,
+          name: aAttr.name,
+          isCorrect: aAttr.isCorrect === true || aAttr.isCorrect === 1,
+          selectedByUser: selectedAnswerIds.includes(a.id)
+        };
+      });
+
+      return {
+        id: q.id,
+        name: qAttr.name,
+        allAnswers,
+        noAnswerGiven: !allAnswers.some(a => a.selectedByUser)
+      };
+    }));
+
+    questions.value = fullQuestions;
+  } catch (err) {
+    console.error('Erreur détails :', err);
+  } finally {
+    loadingDetails.value = false;
+  }
+}
+
+function getAnswerStyle(answer) {
+  if (answer.selectedByUser && answer.isCorrect) return 'background-color: #2e7d32; color: white;';
+  if (answer.selectedByUser && !answer.isCorrect) return 'background-color: #c62828; color: white;';
+  if (!answer.selectedByUser && answer.isCorrect) return 'background-color: #81c784; color: white; opacity: 0.8;';
+  return 'background-color: #f5f5f5; color: #424242;';
 }
 
 function retryExam(row) {
-  if (row.status === "Entrainement") {
     router.push({
-      path: '/PexamE',
+      path: '/Pexam',
       query: {
-        idExam: row.idExam,
-        idQuizz: row.idQuizz
+        code: row.code,
+        mode: 'training',
+        idQuizz: row.idQuizz,
+        idExam: row.idExam
       }
     });
-  } else {
-    alert("Examen déja passer, impossible de le repasser.")
-  }
 }
 
 onMounted(async () => {
-  verifyUserRole("admin", "logged_user", "/");
-  await loadExamU(3)
+  await loadUserData();
+  await loadExamU();
 })
 </script>
 
 <style scoped>
 .text-purple-12 {
-  color: var(--q-color-purple-12);
+  color: #ab47bc;
 }
-
 .bg-rose {
   background-color: #FFF4FF;
+}
+.rounded-borders {
+  border-radius: 8px;
 }
 </style>

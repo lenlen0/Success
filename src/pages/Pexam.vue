@@ -5,9 +5,31 @@
 
         <h4 class="text-h4 text-purple-12">Questionnaire</h4>
 
-        <div v-if="questionsList.length > 0" class="text-subtitle1 q-mb-md text-grey-7">
-          Question {{ currentIndex + 1 }} / {{ questionsList.length }}
+        <!-- Bandeau Mode Entraînement -->
+        <q-banner v-if="mode === 'training'" class="bg-orange-2 text-orange-10 q-mb-md rounded-borders shadow-1">
+          <template v-slot:avatar>
+            <q-icon name="school" color="orange-10" />
+          </template>
+          <div class="text-weight-bold">Mode Entraînement</div>
+          <div class="text-caption">Vos réponses et votre note ne seront pas enregistrées officiellement.</div>
+        </q-banner>
+
+        <div v-if="questionsList.length > 0" class="q-mb-md">
+
+          <div class="row justify-between items-center q-mb-xs">
+            <span class="text-subtitle1 text-grey-7">Question {{ currentIndex + 1 }} / {{ questionsList.length }}</span>
+            <span class="text-subtitle2 text-purple-7 text-weight-bold">{{ Math.round(((currentIndex + 1) / questionsList.length) * 100) }}%</span>
+          </div>
+          <q-linear-progress 
+            :value="(currentIndex + 1) / questionsList.length" 
+            color="purple-7" 
+            track-color="purple-1" 
+            size="10px" 
+            rounded 
+            class="q-mt-sm shadow-1"
+          />
         </div>
+
 
         <div v-if="loading" class="row justify-center q-my-xl">
           <q-spinner-dots color="primary" size="3em" />
@@ -110,6 +132,8 @@ defineOptions({ name: 'PageExam' })
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { verifyUR } from '../composables/verificationU'
+import { Cookies } from 'quasar'
+
 
 const { verifyUserRole } = verifyUR()
 
@@ -125,6 +149,8 @@ const idQuestion = ref(null)
 // Paramètres URL
 const idquizz = ref(route.query.idQuizz ? parseInt(route.query.idQuizz) : 10)
 const idExam = ref(route.query.idExam ? parseInt(route.query.idExam) : 95)
+const mode = ref(route.query.mode || 'normal')
+
 
 // État
 const currentQuestionName = ref('')
@@ -132,6 +158,12 @@ const selectedAnswer = ref(null)
 const selectedAnswers = ref([])
 const loading = ref(true)
 const errorMessage = ref(null)
+
+// Strapi Config
+const BASE_STRAPI_URL = 'http://10.0.52.187:1337'
+const userToken = Cookies.get('token_user')
+const currentUserId = ref(null)
+
 
 // Config Examen
 const hasMalus = ref(0)
@@ -142,20 +174,43 @@ const isLastQuestion = computed(() => {
 })
 
 onMounted(async () => {
+  console.log("Pexam mounted with query:", route.query);
   verifyUserRole("admin", "logged_user", "/");
   loading.value = true
   errorMessage.value = null
 
-  await getExamDetails(idExam.value)
-  await getQuestionsFromQuiz(idquizz.value)
+  await loadUserData()
+  
+  if (currentUserId.value) {
+    await getExamDetails(idExam.value)
+    await getQuestionsFromQuiz(idquizz.value)
 
-  if (questionsList.value.length > 0) {
-    selectedAnswers.value = new Array(questionsList.value.length).fill(null)
-    loadCurrentQuestionData()
+    if (questionsList.value.length > 0) {
+      selectedAnswers.value = new Array(questionsList.value.length).fill(null)
+      loadCurrentQuestionData()
+    }
+  } else {
+    errorMessage.value = "Utilisateur non identifié."
   }
 
   loading.value = false
 })
+
+async function loadUserData() {
+    if (!userToken) return;
+    try {
+        const res = await fetch(`${BASE_STRAPI_URL}/api/users/me`, {
+            headers: { Authorization: `Bearer ${userToken}` }
+        })
+        if (res.ok) {
+            const data = await res.json();
+            currentUserId.value = data.id;
+        }
+    } catch (err) {
+        console.error('Erreur chargement profil Strapi:', err);
+    }
+}
+
 
 // Utilitaire de conversion
 function forceTo1or0(val) {
@@ -170,23 +225,19 @@ function forceTo1or0(val) {
 // 1. Config Examen
 async function getExamDetails(examId) {
   try {
-    const url = `http://10.0.52.142/success/api.php/show_exam/${examId}`;
-    const response = await fetch(url);
+    // Utilisation de filters pour plus de robustesse si l'ID direct fait 404
+    const url = `${BASE_STRAPI_URL}/api/exams?filters[id][$eq]=${examId}`;
+    const response = await fetch(url, {
+      headers: { Authorization: `Bearer ${userToken}` }
+    });
     if (response.ok) {
       const data = await response.json();
-
-      let examData = null;
-      if (Array.isArray(data) && data.length > 0) examData = data[0];
-      else if (data.records && Array.isArray(data.records)) examData = data.records[0];
-      else examData = data;
+      const examData = data.data?.[0]?.attributes || data.data?.[0];
 
       if (examData) {
-        const keys = Object.keys(examData);
-        const keyMalus = keys.find(k => k.toLowerCase().includes('malus')) || 'hasMalus';
-        const keyScale = keys.find(k => k.toLowerCase().includes('scale')) || 'scale';
-
-        hasMalus.value = forceTo1or0(examData[keyMalus]);
-        scale.value = forceTo1or0(examData[keyScale]);
+        // Support pour 'role' ou 'hasMalus'
+        hasMalus.value = forceTo1or0(examData.hasMalus);
+        scale.value = forceTo1or0(examData.scale);
       }
     }
   } catch (err) {
@@ -194,18 +245,29 @@ async function getExamDetails(examId) {
   }
 }
 
+
+
 // 2. Questions
 async function getQuestionsFromQuiz(quizId) {
   try {
-    const url = `http://10.0.52.142/success/api.php/show_question/${quizId}`;
-    const response = await fetch(url);
+    // D'après les logs, la relation s'appelle 'idQuizz'
+    const url = `${BASE_STRAPI_URL}/api/questions?filters[idQuizz][id][$eq]=${quizId}`;
+    const response = await fetch(url, {
+      headers: { Authorization: `Bearer ${userToken}` }
+    });
     if (!response.ok) throw new Error(`Erreur API (${response.status})`);
 
     const data = await response.json();
-    const list = Array.isArray(data) ? data : (data.records || []);
+    const list = data.data || [];
 
     if (list.length > 0) {
-      questionsList.value = list;
+      questionsList.value = list.map(q => {
+          const attr = q.attributes || q;
+          return {
+            id: q.id,
+            name: attr.name
+          };
+      });
     } else {
       errorMessage.value = "Ce questionnaire est vide.";
     }
@@ -214,6 +276,8 @@ async function getQuestionsFromQuiz(quizId) {
     errorMessage.value = "Erreur chargement questions.";
   }
 }
+
+
 
 // 3. Charger Question
 async function loadCurrentQuestionData() {
@@ -229,21 +293,29 @@ async function loadCurrentQuestionData() {
 // 4. Charger Réponses
 async function loadAnswers(questionId) {
   try {
-    const url = `http://10.0.52.142/success/api.php/show_answer/${questionId}`;
-    const response = await fetch(url);
+    // On suppose que la relation s'appelle 'idQuestion' (similaire à idQuizz)
+    const url = `${BASE_STRAPI_URL}/api/answers?filters[idQuestion][id][$eq]=${questionId}`;
+    const response = await fetch(url, {
+      headers: { Authorization: `Bearer ${userToken}` }
+    });
     if (response.ok) {
       const data = await response.json();
-      const answersList = Array.isArray(data) ? data : (data.records || []);
+      const answersList = data.data || [];
 
-      rows.value = answersList.map(item => ({
-        name: item.name ?? item.label ?? item.text ?? '',
-        idAnswer: item.id ?? item.idAnswer ?? item.ID ?? item.answer_id ?? null
-      }));
+      rows.value = answersList.map(item => {
+        const attr = item.attributes || item;
+        return {
+            name: attr.name,
+            idAnswer: item.id
+        };
+      });
     }
   } catch (err) {
     console.error("Erreur loadAnswers :", err);
   }
 }
+
+
 
 // Gestion Clic
 function toggleAnswer(ansId) {
@@ -268,19 +340,19 @@ function skipQuestion() {
 
 // Vérification
 async function getAnswerStatus(questionId, answerId) {
+  if (!answerId) return 0;
   try {
-    const url = `http://10.0.52.142/success/api.php/show_answer/${questionId}`;
-    const response = await fetch(url);
+    const url = `${BASE_STRAPI_URL}/api/answers?filters[id][$eq]=${answerId}`;
+    const response = await fetch(url, {
+      headers: { Authorization: `Bearer ${userToken}` }
+    });
     if (response.ok) {
       const data = await response.json();
-      const answersList = Array.isArray(data) ? data : (data.records || []);
-
-      const answer = answersList.find(item =>
-        String(item.id ?? item.idAnswer) === String(answerId)
-      );
+      const answer = data.data?.[0];
 
       if (answer) {
-        const isCorrect = answer.isCorrect ?? answer.correct;
+        const attr = answer.attributes || answer;
+        const isCorrect = attr.isCorrect;
         if (forceTo1or0(isCorrect) === 1) return 1;
         return -1;
       }
@@ -290,6 +362,8 @@ async function getAnswerStatus(questionId, answerId) {
   }
   return 0;
 }
+
+
 
 function cleanAnswersArray() {
   const total = questionsList.value.length;
@@ -353,19 +427,34 @@ async function calculateGrade(userAnswers) {
 // Envoi
 async function submitExam(answer, grade) {
   try {
-    const url = "http://10.0.52.142/success/api.php/user_result_exam";
+    const url = `${BASE_STRAPI_URL}/api/takeexams`;
+    const payload = {
+      data: {
+          id_s11: currentUserId.value,
+          idExam: idExam.value,
+          answer: JSON.stringify(answer),
+          grade: grade.toString()
+      }
+    };
+
+
+    console.log("Submitting payload:", payload);
+
     const response = await fetch(url, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        id_s11: 3,
-        idExam: idExam.value,
-        answer: answer,
-        grade: grade
-      })
+      headers: { 
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${userToken}`
+      },
+      body: JSON.stringify(payload)
     });
 
-    if (!response.ok) throw new Error("Erreur HTTP " + response.status);
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error("Strapi Error Details:", JSON.stringify(errorData, null, 2));
+      throw new Error(`Erreur HTTP ${response.status}: ${errorData.error?.message || 'Inconnue'}`);
+    }
+
     const data = await response.json();
     return data;
 
@@ -374,6 +463,8 @@ async function submitExam(answer, grade) {
     throw err;
   }
 }
+
+
 
 function validateAnswer() {
   selectedAnswers.value[currentIndex.value] = selectedAnswer.value;
@@ -394,15 +485,23 @@ function finishExam() {
     try {
       loading.value = true;
       const calculatedGrade = await calculateGrade(selectedAnswers.value);
-      await submitExam(selectedAnswers.value, calculatedGrade);
-
-      loading.value = false;
+      
+      if (mode.value === 'training') {
+        console.log("Mode Entraînement : Calcul de la note terminé, pas d'envoi Strapi.");
+        loading.value = false;
+        router.push('/AccueilU');
+        return;
+      } else {
+        await submitExam(selectedAnswers.value, calculatedGrade);
+        loading.value = false;
+      }
 
       setTimeout(() => {
         router.push('/AccueilU');
       }, 1500);
 
     } catch (err) {
+
       loading.value = false;
       console.error("Erreur finale :", err);
       errorMessage.value = "Erreur lors de l'envoi des résultats.";

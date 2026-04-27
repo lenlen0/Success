@@ -36,6 +36,55 @@
         </q-card-section>
       </q-card>
 
+      <!-- SECTION BADGE ET CLASSEMENT -->
+      <div class="row q-col-gutter-lg full-width">
+        <!-- Badge Actuel -->
+        <div class="col-12 col-md-4">
+          <q-card class="q-pa-md full-height" flat bordered style="background: linear-gradient(135deg, #fff 0%, #f3e5f5 100%);">
+            <q-card-section class="column items-center">
+              <div class="text-subtitle1 text-purple-12 text-weight-bold q-mb-md">Mon Badge Actuel</div>
+              <q-avatar size="120px" :color="currentBadge.color" text-color="white" class="shadow-5">
+                <q-icon :name="currentBadge.icon" size="80px" />
+              </q-avatar>
+               <div class="text-h5 text-weight-bold q-mt-md" :style="{ color: currentBadge.color }">{{ currentBadge.label }}</div>
+               <div class="text-subtitle2 text-grey-8 q-mt-xs">{{ currentBadge.description }}</div>
+
+            </q-card-section>
+          </q-card>
+        </div>
+
+        <!-- Top 5 Leaderboard -->
+        <div class="col-12 col-md-8">
+          <q-card class="q-pa-md full-height" flat bordered>
+            <q-card-section>
+              <div class="text-h5 text-purple-12 text-weight-bold q-mb-md">🏆 Top 5 des Étudiants</div>
+              <q-list separator>
+                <q-item v-for="(student, index) in leaderboard" :key="index" class="q-py-sm">
+                  <q-item-section avatar>
+                    <q-avatar :color="index === 0 ? 'amber' : (index === 1 ? 'grey-4' : (index === 2 ? 'orange-4' : 'purple-1'))" 
+                              :text-color="index < 3 ? 'black' : 'purple-10'" size="md">
+                      {{ index + 1 }}
+                    </q-avatar>
+                  </q-item-section>
+                  <q-item-section>
+                    <q-item-label class="text-weight-bold">{{ student.name }}</q-item-label>
+                    <q-item-label caption>Moyenne Générale</q-item-label>
+                  </q-item-section>
+                  <q-item-section side>
+                    <q-badge :color="index === 0 ? 'amber' : 'purple-7'" class="text-subtitle2 q-pa-sm">
+                      {{ student.avg }}%
+                    </q-badge>
+                  </q-item-section>
+                </q-item>
+                <div v-if="leaderboard.length === 0" class="text-center q-pa-md text-grey-6">
+                  Aucune donnée disponible pour le classement.
+                </div>
+              </q-list>
+            </q-card-section>
+          </q-card>
+        </div>
+      </div>
+
       <q-card class="q-pa-lg full-width" flat bordered>
         <q-card-section>
           <div class="text-h5 text-purple-12 text-weight-bold">Statistiques de mes résultats</div>
@@ -126,6 +175,7 @@
         </q-card-section>
       </q-card>
 
+
     </div>
   </q-page>
 </template>
@@ -135,13 +185,18 @@ import { ref, onMounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { verifyUR } from '../composables/verificationU'
 
+import { Cookies } from 'quasar';
+
 const { verifyUserRole } = verifyUR()
 
 const router = useRouter();
 
 // --- 0. Configuration de base ---
-const currentUserId = ref(3); // ID de l'utilisateur connecté
-const BASE_API_URL = 'http://10.0.52.142/success/api.php'
+const BASE_STRAPI_URL = 'http://10.0.52.187:1337'
+const currentUserId = ref(null);
+const userToken = Cookies.get('token_user');
+const currentUserData = ref(null);
+
 
 // --- 1. États pour l'entrée de code ---
 const text = ref('');
@@ -152,6 +207,17 @@ const errorMessage = ref('');
 const examsData = ref([])
 const selectedExams = ref([])
 const examOptions = ref([])
+const leaderboard = ref([])
+
+// --- 3. Badge Logic ---
+const currentBadge = computed(() => {
+  const avg = averageGrade.value;
+  if (avg === 100) return { label: 'Platine', color: 'blue-10', icon: 'workspace_premium', description: 'Perfection absolue ! Tu as plus de 100% de réussite' };
+  if (avg >= 75) return { label: 'Or', color: 'amber-8', icon: 'emoji_events', description: 'Excellent travail ! Tu as plus de 75% de réussite' };
+  if (avg >= 50) return { label: 'Argent', color: 'grey-5', icon: 'military_tech', description: 'Bonne progression. Tu as plus de 50% de réussite' };
+  return { label: 'Bronze', color: 'orange-8', icon: 'stars', description: 'Continuez vos efforts! Tu as moins de 50% de réussite' };
+})
+
 
 
 // ==============================================
@@ -168,37 +234,60 @@ const verifyCode = async () => {
   errorMessage.value = '';
 
   try {
-    const response = await fetch('http://10.0.52.142/success/api.php/show_exam', {
+    const url = `${BASE_STRAPI_URL}/api/exams?filters[code][$eq]=${text.value.trim()}&populate=*`;
+    console.log('Verifying code at:', url);
+    const response = await fetch(url, {
       method: 'GET',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${userToken}`
       }
     });
 
     const data = await response.json();
+    console.log('Verify code response:', data);
 
-    if (response.ok && Array.isArray(data)) {
-      const exam = data.find(e => String(e.code) === text.value.trim());
+    if (response.ok && data.data && data.data.length > 0) {
+      const exam = data.data[0];
+      const attr = exam.attributes || exam;
+      
+      // D'après les logs, le champ de statut s'appelle 'role'
+      const statusValue = attr.role || attr.status;
+      const status = statusValue ? String(statusValue).trim().toLowerCase() : '';
 
-      if (exam) {
-        if (exam.status === 'Ouvert' || exam.status === 'Entrainement') {
-          router.push({
-            path: '/Pexam',
-            query: {
-              idExam: exam.idExam,
-              idQuizz: exam.idQuizz,
-              status: exam.status
-            }
-          });
-        } else {
-          errorMessage.value = "Cet examen est fermé, impossible de le passer.";
-        }
+      console.log('Detected status (from role/status):', status);
+
+      if (status === 'ouvert' || status === 'entrainement') {
+        const quizzData = attr.idQuizz || attr.quizz || attr.quiz;
+        const idQuizz = quizzData?.id || quizzData;
+
+        router.push({
+          path: '/Pexam',
+          query: {
+            idExam: exam.id,
+            idQuizz: idQuizz,
+            status: statusValue
+          }
+        });
       } else {
-        errorMessage.value = 'Code d\'examen invalide';
+        errorMessage.value = `Cet examen est ${statusValue || 'fermé'}, impossible de le passer.`;
       }
+
     } else {
-      errorMessage.value = 'Erreur lors de la récupération des examens';
+      console.warn('Exam not found with code:', text.value.trim());
+      // Debug: essayer de lister TOUS les examens pour voir les codes dispo
+      try {
+          const debugRes = await fetch(`${BASE_STRAPI_URL}/api/exams`, {
+              headers: { Authorization: `Bearer ${userToken}` }
+          });
+          const debugData = await debugRes.json();
+          console.log('Available exams in Strapi:', debugData);
+      } catch (e) {
+          console.error('Failed to fetch all exams for debug', e);
+      }
+      errorMessage.value = 'Code d\'examen invalide';
     }
+
   } catch (error) {
     console.error('Erreur lors de la vérification du code:', error);
     errorMessage.value = 'Une erreur est survenue lors de la vérification du code';
@@ -206,6 +295,8 @@ const verifyCode = async () => {
     loading.value = false;
   }
 };
+
+
 
 
 // ==============================================
@@ -259,34 +350,77 @@ const maxAvgGrade = computed(() => {
 })
 
 
-// --- Fonction de chargement API (Stats) ---
+// --- Fonction de chargement API (Strapi) ---
+
+const userName = ref('');
+
+async function loadUserData() {
+    if (!userToken) return;
+    try {
+        const res = await fetch(`${BASE_STRAPI_URL}/api/users/me?populate=role`, {
+            headers: { Authorization: `Bearer ${userToken}` }
+        })
+        if (res.ok) {
+            const data = await res.json();
+            currentUserData.value = data;
+            currentUserId.value = data.id;
+            userName.value = data.username || data.login || '';
+            console.log('User logged in:', { id: currentUserId.value, name: userName.value });
+        }
+    } catch (err) {
+        console.error('Erreur chargement profil Strapi:', err);
+    }
+}
+
 
 async function loadExamsForStats() {
+    if (!currentUserId.value) return;
     try {
-        const url = `${BASE_API_URL}/show_passed_exam/${currentUserId.value}`
-        const res = await fetch(url)
-        const data = await res.json()
+        const url = `${BASE_STRAPI_URL}/api/takeexams?populate=*`
+        const res = await fetch(url, {
+            headers: { Authorization: `Bearer ${userToken}` }
+        })
+        const responseData = await res.json()
+        console.log('Exams for stats raw data:', responseData);
 
-        if (Array.isArray(data)) {
-            
-            // --- FILTRE ANTI-ENTRAINEMENT AJOUTÉ ICI ---
-            // On retire les examens dont le statut est "Entrainement"
-            const cleanData = data.filter(item => {
-                if (!item.status) return true;
-                return item.status.toLowerCase() !== 'entrainement';
+        if (responseData.data && Array.isArray(responseData.data)) {
+            // Filtrer par utilisateur dans le frontend pour plus de sécurité
+
+            const userResults = responseData.data.filter(item => {
+                const attr = item.attributes || item;
+                const userData = attr.id_s11?.data || attr.id_s11;
+                if (!userData) return false;
+                
+                const val = userData.id || userData;
+                return String(val) === String(currentUserId.value) || 
+                       String(val).toLowerCase() === String(userName.value).toLowerCase();
             });
 
+
+            const cleanData = userResults.filter(item => {
+                const attr = item.attributes || item;
+                const examAttr = attr.idExam?.data?.attributes || attr.idExam;
+                // Le champ s'appelle 'role' dans Strapi
+                const status = (examAttr?.role || examAttr?.status || '').toString().toLowerCase();
+                return status !== 'entrainement';
+            });
+
+
             examsData.value = cleanData.map(item => {
-                const gradeField = item.user_grade !== undefined ? item.user_grade : item.avg_grade;
+                const attr = item.attributes || item;
+                const examAttr = attr.idExam?.data?.attributes || attr.idExam;
+
+                const grade = parseFloat(attr.grade);
 
                 return {
-                    nom: item.exam_name,
-                    reussite: `${gradeField !== null ? (gradeField * 5).toFixed(1) : 0}%`,
-                    idExam: parseInt(item.idExam),
-                    idQuizz: item.idQuizz,
-                    date_exam: item.date_exam
+                    nom: examAttr?.name || 'Examen sans nom',
+
+                    reussite: `${(grade * 5).toFixed(1)}%`,
+                    idExam: item.id,
+                    date_exam: attr.createdAt
                 }
             })
+
 
             examOptions.value = examsData.value.map(item => ({
                 label: item.nom,
@@ -297,17 +431,94 @@ async function loadExamsForStats() {
         }
 
     } catch (err) {
-        console.error('Erreur chargement historique des examens:', err)
+        console.error('Erreur chargement historique Strapi:', err)
         examsData.value = []
     }
 }
+
+async function loadLeaderboard() {
+    try {
+        // Test de différents noms de collection - 'takeexams' est le bon d'après les logs
+        const possibleEndpoints = ['takeexams', 'take-exams', 'results', 'participations'];
+
+        let data = null;
+
+        for (const endpoint of possibleEndpoints) {
+
+            const url = `${BASE_STRAPI_URL}/api/${endpoint}?populate=*`
+            const res = await fetch(url, {
+                headers: { Authorization: `Bearer ${userToken}` }
+            })
+            if (res.ok) {
+                const responseData = await res.json();
+                data = responseData.data;
+                console.log(`Successfully fetched leaderboard from: ${endpoint}`);
+                break;
+            } else {
+
+                console.warn(`Failed to fetch from ${endpoint}: ${res.status}`);
+            }
+        }
+
+        if (data && Array.isArray(data)) {
+            const userScores = {};
+            
+            data.forEach(item => {
+                const attr = item.attributes || item;
+                // Chercher l'utilisateur dans id_s11
+                const userData = attr.id_s11?.data || attr.id_s11;
+                
+                if (!userData) return;
+                
+                const userId = userData.id || userData;
+
+
+
+                const userAttr = userData.attributes || userData;
+                const grade = parseFloat(attr.grade);
+                
+                if (isNaN(grade)) return;
+
+                if (!userScores[userId]) {
+                    const name = (userAttr.firstname && userAttr.lastname) 
+                        ? `${userAttr.firstname} ${userAttr.lastname}` 
+                        : (userAttr.username || userAttr.username || 'Étudiant Anonyme');
+                        
+                    userScores[userId] = {
+                        name: name,
+                        total: 0,
+                        count: 0
+                    };
+                }
+                userScores[userId].total += grade;
+                userScores[userId].count += 1;
+            });
+
+            const calculatedLeaderboard = Object.values(userScores).map(u => ({
+                name: u.name,
+                avg: (u.total / u.count * 5).toFixed(1)
+            })).sort((a, b) => b.avg - a.avg).slice(0, 5);
+
+            leaderboard.value = calculatedLeaderboard;
+        }
+    } catch (err) {
+        console.error('Erreur chargement leaderboard:', err);
+    }
+}
+
+
 
 
 // --- Chargement initial ---
 onMounted(async () => {
     verifyUserRole("admin", "logged_user", "/");
-    await loadExamsForStats()
+    await loadUserData();
+    if (currentUserId.value) {
+        await loadExamsForStats();
+        await loadLeaderboard();
+    }
 })
+
 </script>
 
 <style scoped>

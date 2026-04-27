@@ -312,7 +312,7 @@ import { Cookies } from 'quasar'
 
 const { verifyRole } = verifyR()
 
-const API_Gemini = "AIzaSyBec53Pcp8X4jq39FZshKrXXyvesBZXp4s";
+const API_Gemini = "AIzaSyBLh2Zhobt-z5adGMRQ1sjQlpd26iJeVP0";
 
 const route = useRoute()
 const showDialog = ref(false)
@@ -456,7 +456,14 @@ IMPORTANT :
       }
     );
 
+    if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Gemini API Error Detail:", errorText);
+        throw new Error(`Gemini API error ${response.status}`);
+    }
+
     const data = await response.json();
+
 
     let raw = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
 
@@ -614,7 +621,7 @@ Répète autant que necessaire le format JSON obligatoirement en adéquation ave
     }
 
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${API_Gemini}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-001:generateContent?key=${API_Gemini}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -622,7 +629,14 @@ Répète autant que necessaire le format JSON obligatoirement en adéquation ave
       }
     )
 
+    if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Gemini API Error Detail:", errorText);
+        throw new Error(`Gemini API error ${response.status}`);
+    }
+
     const data = await response.json()
+
 
     let rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text || ''
 
